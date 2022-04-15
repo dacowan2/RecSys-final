@@ -322,7 +322,7 @@ def movie_to_ID(movies):
     
     pass
 
-def get_TFIDF_recommendations(prefs,cosim_matrix,user):
+def get_TFIDF_recommendations(prefs,cosim_matrix,user, n):
     '''
         Calculates recommendations for a given user 
 
@@ -340,29 +340,27 @@ def get_TFIDF_recommendations(prefs,cosim_matrix,user):
     '''
     
     # find more details in Final Project Specification
-    pass
-
-def get_FE_recommendations(prefs, features, movie_title_to_id, user):
-    '''
-        Calculates recommendations for a given user 
-
-        Parameters:
-        -- prefs: dictionary containing user-item matrix
-        -- features: an np.array whose height is based on number of items
-                     and width equals the number of unique features (e.g., genre)
-        -- movie_title_to_id: dictionary that maps movie title to movieid
-        -- user: string containing name of user requesting recommendation        
-        
-        Returns:
-        -- ranknigs: A list of recommended items with 0 or more tuples, 
-           each tuple contains (predicted rating, item name).
-           List is sorted, high to low, by predicted rating.
-           An empty list is returned when no recommendations have been calc'd.
-        
-    '''
+    recs = []
+    item_prefs = transformPrefs(prefs)
+    for i, item in enumerate(item_prefs):
+        if item in prefs[user]:
+            continue
+        sum_products = 0
+        sum_sims = 0
+        for j, sim in enumerate(cosim_matrix[i]):
+            if sim > SIG_THRESHOLD:
+                similar_item = item_prefs.keys()[j]
+                if similar_item in prefs[user]:
+                    rating = prefs[user][similar_item]
+                    product = rating * sim
+                    sum_products += product
+                    sum_sims += sim
+        pred = sum_products / sum_sims
+        recs.append((pred,item))
     
-    # find more details in Final Project Specification
-    pass
+    recs.sort()
+    recs.reverse()
+    return recs[:n]
 
 def main():
     
@@ -378,7 +376,6 @@ def main():
         print()
         file_io = input('R(ead) critics data from file?, \n'
                         'RML(ead) ml100K data from file?, \n'
-                        'FE(ature Encoding) Setup?, \n'
                         'TFIDF(and cosine sim Setup)?, \n'
                         'RECS(ecommendations -- all algos)?, \n'
                         '==>> '
@@ -404,7 +401,6 @@ def main():
             print(features)
             
             # reset these when dataset is loaded/reloaded
-            fe_ran = False
             tfidf_ran = False
              
         elif file_io == 'RML' or file_io == 'rml':
@@ -427,47 +423,8 @@ def main():
             print(features)
             
             # reset these when dataset is loaded/reloaded
-            fe_ran = False
             tfidf_ran = False
                
-        elif file_io == 'FE' or file_io == 'fe':
-            print()
-            #movie_title_to_id = movie_to_ID(movies)
-            # determine the U-I matrix to use ..
-            if len(prefs) > 0 and len(prefs) <= 10: # critics
-                # convert prefs dictionary into 2D list
-                R = to_array(prefs)
-                
-                '''
-                # e.g., critics data (CES)
-                R = np.array([
-                [2.5, 3.5, 3.0, 3.5, 2.5, 3.0],
-                [3.0, 3.5, 1.5, 5.0, 3.5, 3.0],
-                [2.5, 3.0, 0.0, 3.5, 0.0, 4.0],
-                [0.0, 3.5, 3.0, 4.0, 2.5, 4.5],
-                [3.0, 4.0, 2.0, 3.0, 2.0, 3.0],
-                [3.0, 4.0, 0.0, 5.0, 3.5, 3.0],
-                [0.0, 4.5, 0.0, 4.0, 1.0, 0.0],
-                ])            
-                '''      
-                print('critics')
-                print(R)
-                print()
-                print('features')
-                print(features)
-                
-                fe_ran = True
-
-            elif len(prefs) > 10:
-                print('ml-100k')   
-                # convert prefs dictionary into 2D list
-                R = to_array(prefs)
-                
-                fe_ran = True
-                
-            else:
-                print ('Empty dictionary, read in some data!')
-                print()
 
         elif file_io == 'TFIDF' or file_io == 'tfidf':
             print()
@@ -598,22 +555,16 @@ def main():
             
             if len(prefs) > 0 and len(prefs) <= 10: # critics
                 print('critics') 
-                algo = input('Enter FE or TFIDF: ')
-                if algo == 'FE' or algo == 'fe':
-                    if fe_ran:
-                        userID = input('Enter username (for critics) or return to quit: ')
-                        if userID !='':
-                            # Go run the FE algo
-                            print('Go run the FE algo for %s' % userID)
-                    else:
-                        print('Run the FE command first to set up FE data')
-                
-                elif algo == 'TFIDF' or algo == 'tfidf':
+                algo = input('Enter TFIDF: ')
+                if algo == 'TFIDF' or algo == 'tfidf':
                     if tfidf_ran:        
                         userID = input('Enter username (for critics) or return to quit: ')
                         if userID !='':
                             # Go run the TFIDF algo
                             print('Go run the TFIDF algo for %s' % userID)
+                            n = int(input('Enter number of recommendations: '))
+                            recs = get_TFIDF_recommendations(prefs, cosim_matrix, userID, n)
+                            print(recs)
                     else:
                         print('Run the TFIDF command first to set up TFIDF data')                    
                 else:
@@ -621,22 +572,16 @@ def main():
                      
             elif len(prefs) > 10:
                 print('ml-100k') 
-                algo = input('Enter FE or TFIDF: ')
-                if algo == 'FE' or algo == 'fe':
-                    if fe_ran:
-                        userID = input('Enter userid (for ml-100k) or return to quit: ')
-                        if userID !='':
-                            # Go run the FE algo
-                            print('Go run the FE algo for %s' % userID)
-                    else:
-                        print('Run the FE command first to set up FE data')
-                        
-                elif algo == 'TFIDF' or algo == 'tfidf':  
+                algo = input('Enter TFIDF: ')     
+                if algo == 'TFIDF' or algo == 'tfidf':  
                     if tfidf_ran: 
                         userID = input('Enter userid (for ml-100k) or return to quit: ')
                         if userID !='':
                             # Go run the TFIDF algo
                             print('Go run the TFIDF algo for %s' % userID)
+                            n = int(input('Enter number of recommendations: '))
+                            recs = get_TFIDF_recommendations(prefs, cosim_matrix, userID, n)
+                            print(recs)
                     else:
                         print('Run the TFIDF command first to set up TFIDF data')  
                     
@@ -659,23 +604,6 @@ if __name__ == "__main__":
 '''
 
 Sample output ..
-
-
-RECS (for FE)
-ml-100k
-
-Enter userid (for ml-100k) or return to quit: 340
-rec for 340 = [
-(5.0, 'Woman in Question, The (1950)'), 
-(5.0, 'Wallace & Gromit: The Best of Aardman Animation (1996)'), 
-(5.0, 'Thin Man, The (1934)'), 
-(5.0, 'Maltese Falcon, The (1941)'), 
-(5.0, 'Lost Highway (1997)'), 
-(5.0, 'Faust (1994)'), 
-(5.0, 'Daytrippers, The (1996)'), 
-(5.0, 'Big Sleep, The (1946)'), 
-(4.836990595611285, 'Sword in the Stone, The (1963)'), 
-(4.836990595611285, 'Swan Princess, The (1994)')]
 
 RECS (for TFIDF)
 
