@@ -296,11 +296,10 @@ def cosine_sim(docs):
 
 def movie_to_ID(movies):
     '''converts movies mapping from "id to title" to "title to id"'''
+    return {x[1]: x[0] for x in movies.items()}
 
-    pass
 
-
-def get_TFIDF_recommendations(prefs, cosim_matrix, user, n):
+def get_TFIDF_recommendations(prefs, cosim_matrix, user, n, movies):
     """
     Calculates recommendations for a given user
 
@@ -316,34 +315,41 @@ def get_TFIDF_recommendations(prefs, cosim_matrix, user, n):
        An empty list is returned when no recommendations have been calc'd.
 
     """
-
     # find more details in Final Project Specification
-    recs = []
-    item_prefs = transformPrefs(prefs)
+    movies_inv = movie_to_ID(movies)
+    scores = {}
+    totalSim = {}
 
-    for i, item in enumerate(item_prefs):
-        # User has already rated item so skip
-        if item in prefs[user]:
-            continue
-        sum_products = 0
-        sum_sims = 0
-        for j, sim in enumerate(cosim_matrix[i]):
-            if sim > SIG_THRESHOLD:
-                similar_item = list(item_prefs.keys())[j]
-                if similar_item in prefs[user]:
-                    rating = prefs[user][similar_item]
-                    product = rating * sim
-                    sum_products += product
-                    sum_sims += sim
-        if sum_sims == 0:
-            pred = 0
-        else:
-            pred = sum_products / sum_sims
-        recs.append((pred, item))
+    # loop over items the user has rated
+    for (item, rating) in prefs[user].items():
+        item_index = int(movies_inv[item]) - 1
 
-    recs.sort()
-    recs.reverse()
-    return recs[:n]
+        # Loop over items similar to this one
+        for j, sim in enumerate(cosim_matrix[item_index]):
+            similar_item = movies[str(j + 1)]
+
+            # make sure we pass threshold test and that
+            # the item has not already been rated by the user
+            if (sim >= SIG_THRESHOLD) and not (similar_item in prefs[user]):
+
+                # Weighted sum of rating times similarity
+                scores.setdefault(similar_item, 0)
+                scores[similar_item] += sim * rating
+                # Sum of all the similarities
+                totalSim.setdefault(similar_item, 0)
+                totalSim[similar_item] += sim
+
+    # Divide each total score by total weighting to get an average
+    rankings = [
+        (score / totalSim[item], item)
+        for item, score in scores.items()
+        if totalSim[item] > 0
+    ]
+
+    # Return the rankings from highest to lowest
+    rankings.sort()
+    rankings.reverse()
+    return rankings[:n]
 
 
 def main():
@@ -407,6 +413,7 @@ def main():
             movies, genres, features = from_file_to_2D(
                 path, file_dir + genrefile, file_dir + itemfile
             )
+
             ##
             print(
                 "Number of users: %d\nList of users [0:10]:" % len(prefs),
@@ -563,7 +570,7 @@ def main():
                             print("Go run the TFIDF algo for %s" % userID)
                             n = int(input("Enter number of recommendations: "))
                             recs = get_TFIDF_recommendations(
-                                prefs, cosim_matrix, userID, n
+                                prefs, cosim_matrix, userID, n, movies
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:
@@ -582,7 +589,7 @@ def main():
                             print("Go run the TFIDF algo for %s" % userID)
                             n = int(input("Enter number of recommendations: "))
                             recs = get_TFIDF_recommendations(
-                                prefs, cosim_matrix, userID, n
+                                prefs, cosim_matrix, userID, n, movies
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:
