@@ -1,0 +1,2 @@
+,model,test mse,test preds std,epochs,learning rate,n_nodes_per_layer,n_factors,batch_size,dropout_prob
+0,62,0.8871472483188543,0.5685003995895386,25,0.001,"[256, 128, 64, 32, 16, 8, 4, 2]",50,256,0.2
