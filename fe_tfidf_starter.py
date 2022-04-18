@@ -3,12 +3,7 @@ Create content-based recommenders: Feature Encoding, TF-IDF/CosineSim
        using item/genre feature data
        
 
-
-
-
 Programmer name: Brad Shook, Daniel Cowan, Drew Dibble
-
-
 
 
 Collaborator/Author: Carlos Seminario
@@ -85,7 +80,7 @@ def from_file_to_2D(path, genrefile, itemfile):
             # this encoding is required for some datasets: encoding='iso8859'
             for line in myfile:
                 (genre, genre_index) = line.split("|")[0:2]
-                genres[int(genre_index.strip())] = genre
+                genres[int(genre_index.strip())] = genre.replace("-", "")
     # Error processing
     except UnicodeDecodeError as ex:
         print(ex)
@@ -276,53 +271,27 @@ def to_docs(features_str, genres):
 
 
 def cosine_sim(docs):
-    """Perofmrs cosine sim calcs on features list, aka docs in TF-IDF world
-
-    Parameters:
-    -- docs: list of item features
-
-    Returns:
-    -- list containing cosim_matrix: item_feature-item_feature cosine similarity matrix
-
-
-    """
-
+    """Simple example of cosine sim calcs"""
     print()
     print("## Cosine Similarity calc ##")
     print()
-    print("Documents:", docs[:10])
+    # print("Documents:")  # , docs)
+    # for i in range(len(docs)):
+    #     print("%d: %s" % (i + 1, docs[i]))
 
-    print()
-    print("## Count and Transform ##")
-    print()
+    """ These are the key steps to calc the cosine sim matrix """
 
-    # get the TFIDF vectors
-    tfidf_vectorizer = TfidfVectorizer()  # orig
-    tfidf_matrix = tfidf_vectorizer.fit_transform(docs)
-    # print (tfidf_matrix.shape, type(tfidf_matrix)) # debug
+    # STEP 1: TF-IDF calc
+    tfidf_vectorizer = TfidfVectorizer(
+        lowercase=True, smooth_idf=True, norm="l2"
+    )  # instantiate default -- SP22
+    tfidf_matrix = tfidf_vectorizer.fit_transform(
+        docs
+    )  # get sklearn tfidf weights into a matrix
+    # STEP 2: Cosine Sim matrix calc
+    cosim = cosine_similarity(tfidf_matrix[0:], tfidf_matrix)
 
-    print()
-    print("Document similarity matrix:")
-    cosim_matrix = cosine_similarity(tfidf_matrix[0:], tfidf_matrix)
-    print(type(cosim_matrix), len(cosim_matrix))
-    print()
-    print(cosim_matrix[0:6])
-    print()
-
-    """
-    print('Examples of similarity angles')
-    if tfidf_matrix.shape[0] > 2:
-        for i in range(6):
-            cos_sim = cosim_matrix[1][i] #(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix))[0][i] 
-            if cos_sim > 1: cos_sim = 1 # math precision creating problems!
-            angle_in_radians = math.acos(cos_sim)
-            print('Cosine sim: %.3f and angle between documents 2 and %d: ' 
-                  % (cos_sim, i+1), end=' ')
-            print ('%.3f degrees, %.3f radians' 
-                   % (math.degrees(angle_in_radians), angle_in_radians))
-    """
-
-    return cosim_matrix
+    return cosim
 
 
 def movie_to_ID(movies):
@@ -350,10 +319,10 @@ def get_TFIDF_recommendations(prefs, cosim_matrix, user, n):
 
     # find more details in Final Project Specification
     recs = []
-    user_index = list(prefs.keys()).index(user)
     item_prefs = transformPrefs(prefs)
-    prefs_array = to_array(prefs)
+
     for i, item in enumerate(item_prefs):
+        # User has already rated item so skip
         if item in prefs[user]:
             continue
         sum_products = 0
@@ -362,7 +331,7 @@ def get_TFIDF_recommendations(prefs, cosim_matrix, user, n):
             if sim > SIG_THRESHOLD:
                 similar_item = list(item_prefs.keys())[j]
                 if similar_item in prefs[user]:
-                    rating = prefs_array[user_index][i]
+                    rating = prefs[user][similar_item]
                     product = rating * sim
                     sum_products += product
                     sum_sims += sim
