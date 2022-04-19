@@ -28,6 +28,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 warnings.filterwarnings("ignore")  # ("once") #("module") #("default") #("error")
 
 MAX_PRINT = 10
+SIG_THRESHOLD = 0
 
 
 def from_file_to_dict(path, datafile, itemfile):
@@ -211,7 +212,7 @@ def data_stats(prefs, filename):
     )
     print()
     # Plot ratings histrogram
-    plt.hist(ratings_list, bins=4, range=(1, 5), color='#ac1a2f')
+    plt.hist(ratings_list, bins=4, range=(1, 5), color="#ac1a2f")
     plt.ylabel("number of user ratings")
     plt.xticks([1, 2, 3, 4, 5], [1, 2, 3, 4, 5])
     plt.xlabel("rating")
@@ -1231,12 +1232,6 @@ def loo_cv_sim(
     return (mse, rmse, mae), list(square(error_list))
 
 
-SIG_THRESHOLD = (
-    0  # accept all positive similarities > 0 for TF-IDF/ConsineSim Recommender
-)
-# others: TBD ...
-
-
 def from_file_to_2D(path, genrefile, itemfile):
     """Load feature matrix from specified file
     Parameters:
@@ -1554,10 +1549,29 @@ def get_TFIDF_recommendations(prefs, cosim_matrix, user, n, movies):
     rankings.reverse()
     return rankings[:n]
 
+
+def itemsim_to_np_matrix(itemsim, movies):
+    n_items = len(movies)
+    inv_movies = movie_to_ID(movies)
+    np_arr = np.zeros((n_items, n_items))
+
+    for movie in inv_movies:
+        i = int(inv_movies[movie]) - 1
+
+        if movie not in itemsim:
+            continue
+
+        for sim, sim_movie in itemsim[movie]:
+            j = int(inv_movies[sim_movie]) - 1
+            np_arr[i][j] = sim
+
+    return np_arr
+
+
 def hybrid_update_sim_matrix(cosim_matrix, item_item_matrix, weighting_factor):
     """
     Updates the TFIDF sim matrix for the hybrid recommender system based on the weighting factor
-    
+
     Parameters:
     -- cosim_matrix: list containing item_feature-item_feature cosine similarity matrix
     -- item_item_matrix: list containing item-item similarity matrix based on Pearson or Euclidean
@@ -1567,12 +1581,15 @@ def hybrid_update_sim_matrix(cosim_matrix, item_item_matrix, weighting_factor):
     -- updated_cosim_matrix: list containing item_feature-item_feature cosine similarity matrix where
                              0s have been replaced according to item-item matrix
     """
+    print(f"cosim: {np.array(cosim_matrix).shape}")
+    print(f"item: {np.array(item_item_matrix).shape}")
     for i in range(len(cosim_matrix)):
         for j in range(len(cosim_matrix[i])):
             if cosim_matrix[i][j] == 0:
                 cosim_matrix[i][j] == item_item_matrix[i][j] * weighting_factor
-    
+
     return cosim_matrix
+
 
 def get_hybrid_recommendations(prefs, updated_cosim_matrix, user, n, movies):
     """
@@ -1626,8 +1643,6 @@ def get_hybrid_recommendations(prefs, updated_cosim_matrix, user, n, movies):
     rankings.sort()
     rankings.reverse()
     return rankings[:n]
-    
-
 
 
 def main():
@@ -2649,7 +2664,7 @@ def main():
             recs = algo(prefs, matrix, user, 0, 1)
 
             print(f"CF recs using {algo} for {user}: {recs[:num_recs]}")
-        
+
         elif file_io == "TFIDF" or file_io == "tfidf":
             print()
             # determine the U-I matrix to use ..
@@ -2771,16 +2786,21 @@ def main():
             else:
                 print("Empty dictionary, read in some data!")
                 print()
-        
+
         elif file_io == "HYB" or file_io == "hyb":
             weighting_factors = [0, 0.25, 0.5, 0.75, 1]
-            weighting_factor = float(input("Weighting factor (0, 0.25, 0.5, 0.75, or 1): "))
+            weighting_factor = float(
+                input("Weighting factor (0, 0.25, 0.5, 0.75, or 1): ")
+            )
             if weighting_factor in weighting_factors:
-                updated_cosim_matrix = hybrid_update_sim_matrix(cosim_matrix, itemsim, weighting_factor)
+                itemsim_mat = itemsim_to_np_matrix(itemsim, movies)
+                updated_cosim_matrix = hybrid_update_sim_matrix(
+                    cosim_matrix, itemsim_mat, weighting_factor
+                )
                 hybrid_ran = True
             else:
                 print("Input a valid weighting factor")
-            
+
         elif file_io == "RECS" or file_io == "recs":
             print()
             # determine the U-I matrix to use ..
@@ -2817,13 +2837,15 @@ def main():
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:
-                        print("Run the SIM, TFIDF, and HYB commands first to set up hybrid data")
+                        print(
+                            "Run the SIM, TFIDF, and HYB commands first to set up hybrid data"
+                        )
                 else:
                     print("Algorithm %s is invalid, try again!" % algo)
 
             elif len(prefs) > 10:
                 print("ml-100k")
-                algo = input("Enter TFIDF: ")
+                algo = input("Enter TFIDF or Hybrid: ")
                 if algo == "TFIDF" or algo == "tfidf":
                     if tfidf_ran:
                         userID = input("Enter userid (for ml-100k) or return to quit: ")
@@ -2839,18 +2861,20 @@ def main():
                         print("Run the TFIDF command first to set up TFIDF data")
 
                 elif algo == "Hybrid" or algo == "hybrid":
-                        if hybrid_ran & tfidf_ran & sim_ran:
-                            userID = input("Enter userid (for ml-100k) or return to quit: ")
-                            if userID != "":
-                                # Go run the hybrid algo
-                                print("Go run the hybrid algo for %s" % userID)
-                                n = int(input("Enter number of recommendations: "))
-                                recs = get_hybrid_recommendations(
-                                    prefs, updated_cosim_matrix, user, n, movies
-                                )
-                                print(f"recs for {userID}: {str(recs)}")
-                        else:
-                            print("Run the SIM, TFIDF, and HYB commands first to set up hybrid data")
+                    if hybrid_ran & tfidf_ran & sim_ran:
+                        userID = input("Enter userid (for ml-100k) or return to quit: ")
+                        if userID != "":
+                            # Go run the hybrid algo
+                            print("Go run the hybrid algo for %s" % userID)
+                            n = int(input("Enter number of recommendations: "))
+                            recs = get_hybrid_recommendations(
+                                prefs, updated_cosim_matrix, userID, n, movies
+                            )
+                            print(f"recs for {userID}: {str(recs)}")
+                    else:
+                        print(
+                            "Run the SIM, TFIDF, and HYB commands first to set up hybrid data"
+                        )
 
                 else:
                     print("Algorithm %s is invalid, try again!" % algo)
