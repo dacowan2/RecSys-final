@@ -1663,7 +1663,7 @@ def main():
             "LCVSIM(eave one out cross-validation)?, \n"
             "REC(ommendations, Item or User CF)?, \n"
             "TFIDF(and cosine sim Setup)?, \n"
-            "HYB(RID setup?, \n"
+            "HYB(RID setup?), \n"
             "RECS(ecommendations -- all algos)?, \n"
             "==>> "
         )
