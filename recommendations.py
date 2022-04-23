@@ -939,7 +939,8 @@ def getRecommendedItems(prefs, itemMatch, user, threshold):
             totalSim[item2] += similarity
 
     # Divide each total score by total weighting to get an average
-
+    print('scores items')
+    print(scores.items())
     rankings = [(score / totalSim[item], item) for item, score in scores.items()]
 
     # Return the rankings from highest to lowest
@@ -1089,6 +1090,8 @@ def new_getRecommendedUsers(prefs, userMatch, user, threshold, cur_item, movies)
                 simSums.setdefault(item, 0)
                 simSums[item] += sim
 
+    print('Totals items: ')
+    print(totals.items())
     # Create the normalized list
     rankings = [
         (total / simSums[item], item)
@@ -1167,9 +1170,11 @@ def loo_cv_sim(
 
             del prefs[user][item]
 
+            # Get a list of predicted ratings for item
             prediction = algo(prefs, sim_matrix, user, threshold, item, movies)
 
             if prediction != []:
+                # Calc error between highest predicted rating and removed rating
                 curr_error = prediction[0][0] - removed_rating
                 error_list.append(curr_error)
 
@@ -1571,28 +1576,33 @@ def new_get_TFIDF_recommendations(
     userRatings = prefs[user]
 
     cur_item_index = int(movies_inv[cur_item]) - 1
-
+    
+    
     # loop through items this user has rated
     for item in userRatings:
         rating = userRatings[item]
         item_index = int(movies_inv[item]) - 1
-        sim = cosim_matrix[cur_item_index][item_index]
+        sim = cosim_matrix[item_index][cur_item_index]
 
-        # make sure we pass threshold test and that
-        # the item has not already been rated by the user
-        if sim >= threshold:
-            # Weighted sum of rating times similarity
-            scores.setdefault(cur_item, 0)
-            scores[cur_item] += sim * rating
-            # Sum of all the similarities
-            totalSim.setdefault(cur_item, 0)
-            totalSim[cur_item] += sim
+        # make sure we pass threshold test
+        if sim <= threshold:
+            continue
+    
+        # Weighted sum of rating times similarity
+        scores.setdefault(cur_item, 0)
+        scores[cur_item] += sim * rating
+        # Sum of all the similarities
+        totalSim.setdefault(cur_item, 0)
+        totalSim[cur_item] += sim
 
     # Divide each total score by total weighting to get an average
+    # for item, score in scores.items():
+    #     print(f'item: {item}, curr_item: {cur_item}')
+
     rankings = [
         (score / totalSim[item], item)
         for item, score in scores.items()
-        if totalSim[item] > 0
+        if cur_item == item
     ]
 
     # Return the rankings from highest to lowest
@@ -2340,6 +2350,8 @@ def main():
             dataset_name = "critics"
             print('Reading "%s" dictionary from file' % datafile)
             prefs = from_file_to_dict(path, file_dir + datafile, file_dir + itemfile)
+            print('Prefs')
+            print(prefs)
             movies, genres, features = from_file_to_2D(
                 path, file_dir + genrefile, file_dir + itemfile
             )
@@ -3467,8 +3479,8 @@ def main():
                         mov = None
                     elif input_algo.lower() == "tfidf":
                         threshold = float(input("Similarity threshold: "))
-                        sim_sig_weighting = 0
-                        n_neighbors = 0
+                        sim_sig_weighting = 0 # TFIDF doesn't use a sim sig weighting
+                        n_neighbors = 0 # TFIDF doesn't use n_neighbors
                         algo = new_get_TFIDF_recommendations
                         sim_matrix = cosim_matrix
                         sim = 'TFIDF'
@@ -3502,7 +3514,7 @@ def main():
                         return
 
                     if not sim_ran:
-                        break
+                        continue
                         print()
 
                     elif sim_method == "sim_pearson":
@@ -3664,7 +3676,7 @@ def main():
             else:
                 sim = sim_pearson
 
-            recs = algo(prefs, matrix, user, 0, 1)
+            recs = algo(prefs, matrix, user, 1)
 
             print(f"CF recs using {algo} for {user}: {recs[:num_recs]}")
 
@@ -3703,17 +3715,6 @@ def main():
                 print(cosim_matrix)
 
                 tfidf_ran = True
-
-                """
-                <class 'numpy.ndarray'> 
-                
-                [[1.         0.         0.35053494 0.         0.         0.61834884]
-                [0.         1.         0.19989455 0.17522576 0.25156892 0.        ]
-                [0.35053494 0.19989455 1.         0.         0.79459157 0.        ]
-                [0.         0.17522576 0.         1.         0.         0.        ]
-                [0.         0.25156892 0.79459157 0.         1.         0.        ]
-                [0.61834884 0.         0.         0.         0.         1.        ]]
-                """
 
                 # plt.hist(cosim_matrix)
                 # plt.show()
