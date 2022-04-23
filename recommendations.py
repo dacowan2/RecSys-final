@@ -4,7 +4,7 @@ The final code package is a collaborative programming effort between the
 CSC381 student(s) named below, the class instructor (Carlos Seminario), and
 source code from Programming Collective Intelligence, Segaran 2007.
 This code is for academic use/purposes only.
-CSC381 Programmer/Researcher: Brad Shook, Daniel Cowan, Henry Waddill
+CSC381 Programmer/Researcher: Brad Shook, Daniel Cowan, Drew Dibble
 """
 
 import os
@@ -28,7 +28,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 warnings.filterwarnings("ignore")  # ("once") #("module") #("default") #("error")
 
 MAX_PRINT = 10
-SIG_THRESHOLD = 0
 
 
 def from_file_to_dict(path, datafile, itemfile):
@@ -997,7 +996,7 @@ def getRecommendedUsers(prefs, userMatch, user, threshold):
     return rankings
 
 
-def new_getRecommendedItems(prefs, itemMatch, user, threshold, cur_item):
+def new_getRecommendedItems(prefs, itemMatch, user, threshold, cur_item, movies):
     """
     Calculates recommendations for a given user
     Parameters:
@@ -1048,7 +1047,7 @@ def new_getRecommendedItems(prefs, itemMatch, user, threshold, cur_item):
     return rankings
 
 
-def new_getRecommendedUsers(prefs, userMatch, user, threshold, cur_item):
+def new_getRecommendedUsers(prefs, userMatch, user, threshold, cur_item, movies):
     """
     Calculates recommendations for a given user
     Parameters:
@@ -1125,7 +1124,7 @@ def get_all_II_recs(prefs, itemsim, sim_method, num_users=10, top_N=5):
 
 
 def loo_cv_sim(
-    prefs, sim, algo, sim_matrix, dataset_name, threshold, weight, neighbors
+    prefs, sim, algo, sim_matrix, dataset_name, threshold, weight, neighbors, movies
 ):
     """
     Leave-One_Out Evaluation: evaluates recommender system ACCURACY
@@ -1168,10 +1167,7 @@ def loo_cv_sim(
 
             del prefs[user][item]
 
-            prediction = algo(prefs, sim_matrix, user, threshold, item)
-            # prediction = algo(prefs, sim_matrix, user, threshold)
-
-            # prediction = [rec for rec in recs if item in rec]
+            prediction = algo(prefs, sim_matrix, user, threshold, item, movies)
 
             if prediction != []:
                 curr_error = prediction[0][0] - removed_rating
@@ -1202,7 +1198,7 @@ def loo_cv_sim(
 
     coverage = len(error_array) / sum([len(prefs[person].values()) for person in prefs])
 
-    sim_str = str(sim).split()[1]
+    sim_str = str(sim)
     algo_str = str(algo).split()[1]
 
     cur_res_dict = {
@@ -1497,7 +1493,7 @@ def movie_to_ID(movies):
     return {x[1]: x[0] for x in movies.items()}
 
 
-def get_TFIDF_recommendations(prefs, cosim_matrix, user, n, movies):
+def get_TFIDF_recommendations(prefs, cosim_matrix, user, n, movies, threshold):
     """
     Calculates recommendations for a given user
 
@@ -1528,7 +1524,7 @@ def get_TFIDF_recommendations(prefs, cosim_matrix, user, n, movies):
 
             # make sure we pass threshold test and that
             # the item has not already been rated by the user
-            if (sim >= SIG_THRESHOLD) and not (similar_item in prefs[user]):
+            if (sim >= threshold) and not (similar_item in prefs[user]):
 
                 # Weighted sum of rating times similarity
                 scores.setdefault(similar_item, 0)
@@ -1548,6 +1544,61 @@ def get_TFIDF_recommendations(prefs, cosim_matrix, user, n, movies):
     rankings.sort()
     rankings.reverse()
     return rankings[:n]
+
+
+def new_get_TFIDF_recommendations(
+    prefs, cosim_matrix, user, threshold, cur_item, movies
+):
+    """
+    Calculates recommendations for a given user
+
+    Parameters:
+    -- prefs: dictionary containing user-item matrix
+    -- cosim_matrix: list containing item_feature-item_feature cosine similarity matrix
+    -- user: string containing name of user requesting recommendation
+
+    Returns:
+    -- ranknigs: A list of recommended items with 0 or more tuples,
+       each tuple contains (predicted rating, item name).
+       List is sorted, high to low, by predicted rating.
+       An empty list is returned when no recommendations have been calc'd.
+
+    """
+    # find more details in Final Project Specification
+    movies_inv = movie_to_ID(movies)
+    scores = {}
+    totalSim = {}
+    userRatings = prefs[user]
+
+    cur_item_index = int(movies_inv[cur_item]) - 1
+
+    # loop through items this user has rated
+    for item in userRatings:
+        rating = userRatings[item]
+        item_index = int(movies_inv[item]) - 1
+        sim = cosim_matrix[cur_item_index][item_index]
+
+        # make sure we pass threshold test and that
+        # the item has not already been rated by the user
+        if sim >= threshold:
+            # Weighted sum of rating times similarity
+            scores.setdefault(cur_item, 0)
+            scores[cur_item] += sim * rating
+            # Sum of all the similarities
+            totalSim.setdefault(cur_item, 0)
+            totalSim[cur_item] += sim
+
+    # Divide each total score by total weighting to get an average
+    rankings = [
+        (score / totalSim[item], item)
+        for item, score in scores.items()
+        if totalSim[item] > 0
+    ]
+
+    # Return the rankings from highest to lowest
+    rankings.sort()
+    rankings.reverse()
+    return rankings
 
 
 def itemsim_to_np_matrix(itemsim, movies):
@@ -1583,15 +1634,17 @@ def hybrid_update_sim_matrix(cosim_matrix, item_item_matrix, weighting_factor):
     """
     print(f"cosim: {np.array(cosim_matrix).shape}")
     print(f"item: {np.array(item_item_matrix).shape}")
+    copy = cosim_matrix.copy()
+
     for i in range(len(cosim_matrix)):
         for j in range(len(cosim_matrix[i])):
             if cosim_matrix[i][j] == 0:
-                cosim_matrix[i][j] == item_item_matrix[i][j] * weighting_factor
+                copy[i][j] = item_item_matrix[i][j] * weighting_factor
 
-    return cosim_matrix
+    return copy
 
 
-def get_hybrid_recommendations(prefs, updated_cosim_matrix, user, n, movies):
+def get_hybrid_recommendations(prefs, updated_cosim_matrix, user, n, movies, threshold):
     """
     Calculates recommendations for a given user
 
@@ -1623,7 +1676,7 @@ def get_hybrid_recommendations(prefs, updated_cosim_matrix, user, n, movies):
 
             # make sure we pass threshold test and that
             # the item has not already been rated by the user
-            if (sim >= SIG_THRESHOLD) and not (similar_item in prefs[user]):
+            if (sim >= threshold) and not (similar_item in prefs[user]):
 
                 # Weighted sum of rating times similarity
                 scores.setdefault(similar_item, 0)
@@ -1643,6 +1696,62 @@ def get_hybrid_recommendations(prefs, updated_cosim_matrix, user, n, movies):
     rankings.sort()
     rankings.reverse()
     return rankings[:n]
+
+
+def new_get_hybrid_recommendations(
+    prefs, updated_cosim_matrix, user, threshold, cur_item, movies
+):
+    """
+    Calculates recommendations for a given user
+
+    Parameters:
+    -- prefs: dictionary containing user-item matrix
+    -- updated_cosim_matrix: list containing item_feature-item_feature cosine similarity matrix where
+                             0s have been replaced according to item-item matrix
+    -- user: string containing name of user requesting recommendation
+
+    Returns:
+    -- rankings: A list of recommended items with 0 or more tuples,
+       each tuple contains (predicted rating, item name).
+       List is sorted, high to low, by predicted rating.
+       An empty list is returned when no recommendations have been calc'd.
+
+    """
+    # find more details in Final Project Specification
+    movies_inv = movie_to_ID(movies)
+    scores = {}
+    totalSim = {}
+    userRatings = prefs[user]
+
+    cur_item_index = int(movies_inv[cur_item]) - 1
+
+    # loop through items this user has rated
+    for item in userRatings:
+        rating = userRatings[item]
+        item_index = int(movies_inv[item]) - 1
+        sim = updated_cosim_matrix[item_index][cur_item_index]
+
+        # make sure we pass threshold test and that
+        # the item has not already been rated by the user
+        if sim >= threshold:
+            # Weighted sum of rating times similarity
+            scores.setdefault(cur_item, 0)
+            scores[cur_item] += sim * rating
+            # Sum of all the similarities
+            totalSim.setdefault(cur_item, 0)
+            totalSim[cur_item] += sim
+
+    # Divide each total score by total weighting to get an average
+    rankings = [
+        (score / totalSim[item], item)
+        for item, score in scores.items()
+        if totalSim[item] > 0
+    ]
+
+    # Return the rankings from highest to lowest
+    rankings.sort()
+    rankings.reverse()
+    return rankings
 
 
 def main():
@@ -2494,22 +2603,52 @@ def main():
                     print("LOO_CV_SIM Evaluation")
 
                     input_algo = input(
-                        "User-based (user) or item-based (item) recommendations? "
+                        "User-based (user), item-based (item), TFIDF (tfidf), or hybrid (hybrid) recommendations? "
                     )
 
                     if input_algo.lower() == "user":
                         algo = new_getRecommendedUsers
                         sim_matrix = usersim
+                        mov = None
                     elif input_algo.lower() == "item":
                         algo = new_getRecommendedItems  # Item-based recommendation
                         sim_matrix = itemsim
+                        mov = None
+                    elif input_algo.lower() == "tfidf":
+                        algo = new_get_TFIDF_recommendations
+                        sim_matrix = cosim_matrix
+                        sim = None
+                        mov = movies
+                    elif input_algo.lower() == "hybrid":
+                        algo = new_get_hybrid_recommendations
+                        mov = movies
+                        try:
+                            sim_matrix = updated_cosim_matrix
+                        except:
+                            print("Please run the HYB command first.")
+                            return
                     else:
                         print(
                             'Invalid recommendation algo. Please say "user" or "item".'
                         )
                         return
 
-                    if sim_method == "sim_pearson":
+                    if not sim_ran:
+                        error_total, error_list = loo_cv_sim(
+                            prefs,
+                            sim,
+                            algo,
+                            sim_matrix,
+                            dataset_name,
+                            threshold,
+                            weight,
+                            n_neighbors,
+                            mov,
+                        )
+
+                        print()
+
+                    elif sim_method == "sim_pearson":
                         sim = sim_pearson
                         error_total, error_list = loo_cv_sim(
                             prefs,
@@ -2520,6 +2659,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2535,6 +2675,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2550,6 +2691,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2565,6 +2707,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2580,6 +2723,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2595,6 +2739,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2610,6 +2755,7 @@ def main():
                             threshold,
                             weight,
                             n_neighbors,
+                            mov,
                         )
 
                         print()
@@ -2627,7 +2773,7 @@ def main():
                     pickle.dump(
                         error_list,
                         open(
-                            f"errors_brad/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{weight}_{sim_str}_{algo_str}_{n_neighbors}.p",
+                            f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{weight}_{sim_str}_{algo_str}_{n_neighbors}.p",
                             "wb",
                         ),
                     )
@@ -2818,7 +2964,7 @@ def main():
                             print("Go run the TFIDF algo for %s" % userID)
                             n = int(input("Enter number of recommendations: "))
                             recs = get_TFIDF_recommendations(
-                                prefs, cosim_matrix, userID, n, movies
+                                prefs, cosim_matrix, userID, n, movies, threshold
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:
@@ -2833,7 +2979,12 @@ def main():
                             print("Go run the hybrid algo for %s" % userID)
                             n = int(input("Enter number of recommendations: "))
                             recs = get_hybrid_recommendations(
-                                prefs, updated_cosim_matrix, user, n, movies
+                                prefs,
+                                updated_cosim_matrix,
+                                userID,
+                                n,
+                                movies,
+                                threshold,
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:
@@ -2845,8 +2996,31 @@ def main():
 
             elif len(prefs) > 10:
                 print("ml-100k")
-                algo = input("Enter TFIDF or Hybrid: ")
-                if algo == "TFIDF" or algo == "tfidf":
+                algo = input("Enter TFIDF or Hybrid or Test: ")
+                if algo == "TEST" or algo == "test":
+                    if tfidf_ran:
+                        userID = input("Enter userid (for ml-100k) or return to quit: ")
+                        if userID != "":
+                            # Go run the TFIDF algo
+                            print(
+                                "Go run the TFIDF algo for %s, using threshold of %f"
+                                % (userID, threshold)
+                            )
+                            item = "Rich Man's Wife, The (1996)"
+                            recs = new_get_hybrid_recommendations(
+                                prefs,
+                                updated_cosim_matrix,
+                                userID,
+                                threshold,
+                                item,
+                                movies,
+                            )
+                            print(f"recs for {userID}: {str(recs)}")
+                    else:
+                        print("Run the TFIDF command first to set up TFIDF data")
+                    pass
+
+                elif algo == "TFIDF" or algo == "tfidf":
                     if tfidf_ran:
                         userID = input("Enter userid (for ml-100k) or return to quit: ")
                         if userID != "":
@@ -2854,7 +3028,7 @@ def main():
                             print("Go run the TFIDF algo for %s" % userID)
                             n = int(input("Enter number of recommendations: "))
                             recs = get_TFIDF_recommendations(
-                                prefs, cosim_matrix, userID, n, movies
+                                prefs, cosim_matrix, userID, n, movies, threshold
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:
@@ -2868,7 +3042,12 @@ def main():
                             print("Go run the hybrid algo for %s" % userID)
                             n = int(input("Enter number of recommendations: "))
                             recs = get_hybrid_recommendations(
-                                prefs, updated_cosim_matrix, userID, n, movies
+                                prefs,
+                                updated_cosim_matrix,
+                                userID,
+                                n,
+                                movies,
+                                threshold,
                             )
                             print(f"recs for {userID}: {str(recs)}")
                     else:

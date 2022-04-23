@@ -1,0 +1,2 @@
+dataset_name,sim_method,algo,sim_threshold,neighbors,sig_weight,coverage,mse,rmse,mae
+ml-100k,<function sim_distance at 0x00000221B9FE60E0>,new_get_hybrid_recommendations,0.0,100,1,0.99815,1.0224485364387255,1.011161973394335,0.8044835775764475
