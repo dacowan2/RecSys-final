@@ -1,2 +1,2 @@
-,model,test mse,test preds std,epochs,learning rate,n_nodes_per_layer,n_factors,batch_size,dropout_prob
-0,9,1.1720768084210016,0.4608131945133209,25,0.0001,"[1024, 512, 256, 128, 64, 32, 16, 8, 4, 2]",25,256,0.2
+,model,test mse,test preds std,epochs,learning rate,n_nodes_per_layer,n_factors,batch_size,dropout_prob,patience,early stopping metric
+0,9,1.2552602361907614,0.0,250,0.01,"[1024, 512, 256, 128, 64, 32, 16, 8, 4, 2]",50,256,0.2,5,val_loss

@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import warnings
 from keras.models import load_model
+from keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from keras.layers import Input, Embedding, Flatten, Dot, Dense, Concatenate, BatchNormalization, Dropout
@@ -30,13 +31,15 @@ n_users = len(pd.unique(dataset['user_id']))
 train, test_temp = train_test_split(dataset, test_size=0.2, random_state=42)
 val, test = train_test_split(test_temp, test_size=0.5, random_state=42)
 
-model_num = 72
-n_factors_list = [5,25,50,100]
-n_nodes_per_layer_list = [128, 64, 32, 16, 8, 4, 2]
-lr_list = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
+model_num = 40
+n_factors_list = [5,25,50,100,200]
+n_nodes_per_layer_list = [256, 128, 64, 32, 16, 8, 4, 2]
+lr_list = [1e-1, 1e-2, 1e-3, 1e-4]
 dropout_prob = 0.2
-epochs = 25
+epochs = 250
 batch_size = 256
+patience = 5
+early_stopping_metric = 'val_loss'
 
 for i, n_factors in enumerate(n_factors_list):
     for j, lr in enumerate(lr_list):
@@ -87,8 +90,10 @@ for i, n_factors in enumerate(n_factors_list):
         # Create model and compile it
         model = Model([user_input, movie_input], out)
         model.compile(optimizer=Adam(learning_rate=lr), loss=MeanSquaredError())
+        
+        callback = EarlyStopping(monitor=early_stopping_metric, patience=patience)
 
-        history = model.fit(x = [train.user_id, train.item_id], y = train.rating, validation_data = ((val.user_id, val.item_id), val.rating), epochs=epochs, verbose=1, batch_size = batch_size)
+        history = model.fit(x = [train.user_id, train.item_id], y = train.rating, validation_data = ((val.user_id, val.item_id), val.rating), epochs=epochs, verbose=1, batch_size = batch_size, callbacks = [callback])
 
         train_loss = history.history['loss']
         val_loss = history.history['val_loss']
@@ -116,8 +121,8 @@ for i, n_factors in enumerate(n_factors_list):
         test_mse = mean_squared_error(ratings_actual_array, ratings_preds_array)
 
         # make csv with ensemble info
-        model_info_header_list = ['model', 'test mse', 'test preds std', 'epochs', 'learning rate', 'n_nodes_per_layer', 'n_factors', 'batch_size', 'dropout_prob']
-        model_info_val_list = [[model_num, test_mse, preds_std, epochs, lr, n_nodes_per_layer_list, n_factors, batch_size, dropout_prob]]
+        model_info_header_list = ['model', 'test mse', 'test preds std', 'epochs', 'learning rate', 'n_nodes_per_layer', 'n_factors', 'batch_size', 'dropout_prob', 'patience', 'early stopping metric']
+        model_info_val_list = [[model_num, test_mse, preds_std, epochs, lr, n_nodes_per_layer_list, n_factors, batch_size, dropout_prob, patience, early_stopping_metric]]
 
         model_info_df = pd.DataFrame(model_info_val_list, columns = model_info_header_list)
         model_info_df.to_csv(f'models/model_{model_num}/model_info.csv')
