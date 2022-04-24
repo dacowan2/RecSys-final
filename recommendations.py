@@ -3676,16 +3676,16 @@ def main():
                     if dataset_name == "critics":
                         print(error_list)
 
-                    # for anova testing purposes
-                    sim_str = str(sim).split()[1]
-                    algo_str = str(algo).split()[1]
-                    pickle.dump(
-                        error_list,
-                        open(
-                            f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{sim_sig_weighting}_{sim_str}_{algo_str}_{n_neighbors}.p",
-                            "wb",
-                        ),
-                    )
+                    # # for anova testing purposes
+                    # sim_str = str(sim).split()[1]
+                    # algo_str = str(algo).split()[1]
+                    # pickle.dump(
+                    #     error_list,
+                    #     open(
+                    #         f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{sim_sig_weighting}_{sim_str}_{algo_str}_{n_neighbors}.p",
+                    #         "wb",
+                    #     ),
+                    # )
 
                 else:
                     print("Empty dictionary, run R(ead) OR Empty Sim Matrix, run Sim!")
