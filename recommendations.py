@@ -1142,6 +1142,9 @@ def loo_cv_sim(
          error_list: list of actual-predicted differences
     """
 
+    print('Sim matrix')
+    print(sim_matrix)
+
     users = list(prefs.keys())
     error_list = []
 
@@ -1167,8 +1170,11 @@ def loo_cv_sim(
 
         for item in list(prefs[user].keys()):
             removed_rating = prefs[user][item]
+            # print(f'removed rating: {removed_rating}')
+            # print(f'User: {user}, Item: {item}')
 
             del prefs[user][item]
+
 
             # Get a list of predicted ratings for item
             prediction = algo(prefs, sim_matrix, user, threshold, item, movies)
@@ -1179,6 +1185,7 @@ def loo_cv_sim(
                 error_list.append(curr_error)
 
             prefs[user][item] = removed_rating
+        
 
     secs = time.time() - start
     print(f"Number of users processed: {i}")
@@ -1577,12 +1584,17 @@ def new_get_TFIDF_recommendations(
 
     cur_item_index = int(movies_inv[cur_item]) - 1
     
-    
+    # print(f'User ratings: {userRatings}')
+
+    # print(f'Making prediction for {user} for {cur_item}')
     # loop through items this user has rated
     for item in userRatings:
         rating = userRatings[item]
+
+
         item_index = int(movies_inv[item]) - 1
         sim = cosim_matrix[item_index][cur_item_index]
+        # print(f'Curr rating: {rating}, Curr sim: {sim}')
 
         # make sure we pass threshold test
         if sim <= threshold:
@@ -1597,14 +1609,12 @@ def new_get_TFIDF_recommendations(
 
     # Divide each total score by total weighting to get an average
     # for item, score in scores.items():
-    #     print(f'item: {item}, curr_item: {cur_item}')
-
     rankings = [
         (score / totalSim[item], item)
         for item, score in scores.items()
         if cur_item == item
     ]
-
+    # print(f'Rankings: {rankings}')
     # Return the rankings from highest to lowest
     rankings.sort()
     rankings.reverse()
@@ -2427,21 +2437,21 @@ def main():
 
         elif file_io == 'PD-RML' or file_io == 'pd-rml':
                     
-                    dataset = 'ml-100k'
-                    # Load user-item matrix from file
-                    ## Read in data: ml-100k
-                    data_folder = '/data/ml-100k/' # for ml-100k                   
-                    #print('\npath: %s\n' % path_name + data_folder) # debug: print path info
-                    names = ['user_id', 'item_id', 'rating', 'timestamp'] # column headings
+            dataset = 'ml-100k'
+            # Load user-item matrix from file
+            ## Read in data: ml-100k
+            data_folder = '/data/ml-100k/' # for ml-100k                   
+            #print('\npath: %s\n' % path_name + data_folder) # debug: print path info
+            names = ['user_id', 'item_id', 'rating', 'timestamp'] # column headings
+    
+            #Create pandas dataframe
+            df = pd.read_csv(path_name + data_folder + 'u.data', sep='\t', names=names) # for ml-100k
+            ratings = file_info(df)
             
-                    #Create pandas dataframe
-                    df = pd.read_csv(path_name + data_folder + 'u.data', sep='\t', names=names) # for ml-100k
-                    ratings = file_info(df)
-                    
-                    test_train_done = False
-                    print()
-                    print('Test and Train arrays are empty!')
-                    print()
+            test_train_done = False
+            print()
+            print('Test and Train arrays are empty!')
+            print()
        
         elif file_io == "P" or file_io == "p":
             # print the u-i matrix
@@ -3465,6 +3475,11 @@ def main():
                         "UU-CF, II-CF, TFIDF, or hybrid recommendations? "
                     )
 
+                    if sim_method == 'sim_distance':
+                        sim = sim_distance
+                    elif sim_method == 'sim_pearson':
+                        sim = sim_pearson
+
                     if input_algo.lower() == "uu-cf":
                         threshold = float(input("Similarity threshold: "))
                         sim_sig_weighting = float(input('Similarity significance weighting: '))
@@ -3501,12 +3516,25 @@ def main():
                         algo = new_get_hybrid_recommendations
                         mov = movies
                         threshold = float(input("Similarity threshold: "))
-                        sim_sig_weighting = float(input('Similarity significance weighting: '))
+                    
                         try:
                             sim_matrix = updated_cosim_matrix
                         except:
                             print("Please run the HYB command first.")
                             return
+
+                        error_total, error_list = loo_cv_sim(
+                            prefs,
+                            sim,
+                            algo,
+                            sim_matrix,
+                            dataset_name,
+                            threshold,
+                            sim_sig_weighting,
+                            n_neighbors,
+                            mov,
+                        )
+                        
                     else:
                         print(
                             'Invalid recommendation algo. Please say "user" or "item".'
