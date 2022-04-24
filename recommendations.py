@@ -1127,7 +1127,7 @@ def get_all_II_recs(prefs, itemsim, sim_method, num_users=10, top_N=5):
 
 
 def loo_cv_sim(
-    prefs, sim, algo, sim_matrix, dataset_name, threshold, sim_sig_weighting, neighbors, movies
+    prefs, sim, algo, sim_matrix, dataset_name, threshold, sim_sig_weighting, neighbors, movies, weighting_factor = 0
 ):
     """
     Leave-One_Out Evaluation: evaluates recommender system ACCURACY
@@ -1193,22 +1193,30 @@ def loo_cv_sim(
 
     error_array = array(error_list)
 
-    mse = (1 / len(error_list)) * sum(error_array ** 2)
-    rmse = sqrt((1 / len(error_list)) * sum(error_array ** 2))
-    mae = (1 / len(error_list)) * sum(abs(error_array))
-    print(f"MSE: {round(mse,5)}, RMSE: {round(rmse,5)}, MAE: {round(mae,5)}")
-    print(
-        "Final results froom loo_cv_sim: len(prefs)={prefs_length_val}, sim={sim_val}, {function_val}".format(
-            prefs_length_val=len(prefs), sim_val=sim, function_val=algo
+    if error_array != []:
+
+        mse = (1 / len(error_list)) * sum(error_array ** 2)
+        rmse = sqrt((1 / len(error_list)) * sum(error_array ** 2))
+        mae = (1 / len(error_list)) * sum(abs(error_array))
+        print(f"MSE: {round(mse,5)}, RMSE: {round(rmse,5)}, MAE: {round(mae,5)}")
+        print(
+            "Final results froom loo_cv_sim: len(prefs)={prefs_length_val}, sim={sim_val}, {function_val}".format(
+                prefs_length_val=len(prefs), sim_val=sim, function_val=algo
+            )
         )
-    )
 
-    print(f"MSE: {round(mse,5)}, RMSE: {round(rmse,5)}, MAE: {round(mae,5)}")
-    print(
-        f"MSE for {dataset_name}: {round(mse,5)}, len(SE list): {len(error_array)} using {sim}"
-    )
+        print(f"MSE: {round(mse,5)}, RMSE: {round(rmse,5)}, MAE: {round(mae,5)}")
+        print(
+            f"MSE for {dataset_name}: {round(mse,5)}, len(SE list): {len(error_array)} using {sim}"
+        )
 
-    coverage = len(error_array) / sum([len(prefs[person].values()) for person in prefs])
+        coverage = len(error_array) / sum([len(prefs[person].values()) for person in prefs])
+
+    else:
+        mse = -1
+        rmse = -1
+        mae = -1
+        coverage = -1
 
     sim_str = str(sim)
     algo_str = str(algo).split()[1]
@@ -1220,6 +1228,7 @@ def loo_cv_sim(
         "sim_threshold": [threshold],
         "neighbors": [neighbors],
         "sig_weight": [sim_sig_weighting],
+        "weighting_factor": [weighting_factor],
         "coverage": [coverage],
         "mse": [mse],
         "rmse": [rmse],
@@ -3516,7 +3525,7 @@ def main():
                         algo = new_get_hybrid_recommendations
                         mov = movies
                         threshold = float(input("Similarity threshold: "))
-                    
+
                         try:
                             sim_matrix = updated_cosim_matrix
                         except:
@@ -3533,6 +3542,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            weighting_factor
                         )
                         
                     else:
@@ -3717,18 +3727,6 @@ def main():
                 feature_str = to_string(features)
                 feature_docs = to_docs(feature_str, genres)
 
-                """
-                # e.g., critics data (CES)
-                R = np.array([
-                [2.5, 3.5, 3.0, 3.5, 2.5, 3.0],
-                [3.0, 3.5, 1.5, 5.0, 3.5, 3.0],
-                [2.5, 3.0, 0.0, 3.5, 0.0, 4.0],
-                [0.0, 3.5, 3.0, 4.0, 2.5, 4.5],
-                [3.0, 4.0, 2.0, 3.0, 2.0, 3.0],
-                [3.0, 4.0, 0.0, 5.0, 3.5, 3.0],
-                [0.0, 4.5, 0.0, 4.0, 1.0, 0.0],
-                ])            
-                """
                 print("critics")
                 print(R)
                 print()
@@ -3742,11 +3740,9 @@ def main():
                 print("cosine sim matrix")
                 print(cosim_matrix)
 
+                sim = 'TFIDF'
+                sim_method = 'TFIDF'
                 tfidf_ran = True
-
-                # plt.hist(cosim_matrix)
-                # plt.show()
-                # print and plot histogram of similarites
 
             elif len(prefs) > 10:
                 print("ml-100k")
@@ -3769,19 +3765,6 @@ def main():
                 print(cosim_matrix)
                 print()
 
-                tfidf_ran = True
-
-                """
-                <class 'numpy.ndarray'> 1682
-                
-                [[1.         0.         0.         ... 0.         0.34941857 0.        ]
-                 [0.         1.         0.53676706 ... 0.         0.         0.        ]
-                 [0.         0.53676706 1.         ... 0.         0.         0.        ]
-                 [0.18860189 0.38145435 0.         ... 0.24094937 0.5397592  0.45125862]
-                 [0.         0.30700538 0.57195272 ... 0.19392295 0.         0.36318585]
-                 [0.         0.         0.         ... 0.53394963 0.         1.        ]]
-                """
-
                 cosim_matrix_bl = np.multiply(
                     cosim_matrix, np.tri(cosim_matrix.shape[0], k=-1)
                 )
@@ -3801,7 +3784,7 @@ def main():
                 print(len(cosim_matrix_bl_wo_zeros))
                 print()
                 # plt.hist(cosim_matrix_bl_wo_zeros)
-                # plt.vlines(x = 0.307, ymin = 0, ymax = 120000, color = 'r')
+                # plt.vlines(x = 0.306, ymin = 0, ymax = 120000, color = 'r')
                 # plt.vlines(x = 0.577, ymin = 0, ymax = 120000, color = 'r')
                 # plt.vlines(x = 0.847, ymin = 0, ymax = 120000, color = 'r')
                 # plt.savefig('figures/cosim_matrix_without_0.png')
@@ -3814,7 +3797,10 @@ def main():
                 print("std of cosim matrix")
                 print(cosim_matrix_std)
                 print()
-
+                
+                sim = 'TFIDF'
+                sim_method = 'TFIDF'
+                tfidf_ran = True
             else:
                 print("Empty dictionary, read in some data!")
                 print()
@@ -4017,6 +4003,79 @@ def main():
                 print("Empty dictionary, read in some data!")
                 print()
 
+        elif file_io == 'TFIDF-GRID' or file_io == 'tfidf-grid':
+        
+            tfidf_thresholds = [0, 0.3061939222, 0.5764484463073936, 0.8467029704]
+            
+            for tfidf_threshold in tfidf_thresholds:
+                sim_sig_weighting = 0 # TFIDF doesn't use a sim sig weighting
+                n_neighbors = 0 # TFIDF doesn't use n_neighbors
+                algo = new_get_TFIDF_recommendations
+                sim_matrix = cosim_matrix
+                sim = 'TFIDF'
+                mov = movies
+
+                error_total, error_list = loo_cv_sim(
+                    prefs,
+                    sim,
+                    algo,
+                    sim_matrix,
+                    dataset_name,
+                    tfidf_threshold,
+                    sim_sig_weighting,
+                    n_neighbors,
+                    mov,
+                )
+
+        elif file_io == 'HYB-GRID' or file_io == 'hyb-grid':
+
+            n_neighbors = 100
+            sim_sig_weighting = 100
+            tfidf_thresholds = [0, 0.3061939222, 0.5764484463073936, 0.8467029704]
+            weighting_factors = [.25, .5, .75, 1]
+            sim_methods = [sim_distance, sim_pearson]
+
+            for tfidf_threshold in tfidf_thresholds:
+                for weighting_factor in weighting_factors:
+                    for sim_method in sim_methods:
+                    
+                        # Make cosim matrix
+                        R = to_array(prefs)
+                        feature_str = to_string(features)
+                        feature_docs = to_docs(feature_str, genres)
+                        cosim_matrix = cosine_sim(feature_docs)
+
+                        # Get II sim matrix
+                        itemsim = calculateSimilarItems(
+                            prefs,
+                            neighbors=n_neighbors,
+                            similarity=sim_method,
+                            sim_sig_weighting=sim_sig_weighting,
+                        )
+
+                        algo = new_get_hybrid_recommendations
+                        mov = movies
+
+                        itemsim_mat = itemsim_to_np_matrix(itemsim, movies)
+                        updated_cosim_matrix = hybrid_update_sim_matrix(
+                            cosim_matrix, itemsim_mat, weighting_factor
+                        )
+
+                        error_total, error_list = loo_cv_sim(
+                            prefs,
+                            sim_method,
+                            algo,
+                            updated_cosim_matrix,
+                            dataset_name,
+                            tfidf_threshold,
+                            sim_sig_weighting,
+                            n_neighbors,
+                            movies,
+                            weighting_factor
+                        )
+
+            
+        
         else:
             done = True
 
