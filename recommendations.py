@@ -2353,7 +2353,9 @@ def main():
             "LCVSIM(eave one out cross-validation)?, \n"
             "REC(ommendations, Item or User CF)?, \n"
             "TFIDF(and cosine sim Setup)?, \n"
+            "TFIDF-GRID \n"
             "HYB(RID setup?), \n"
+            "HYB-GRID \n"
             "RECS(ecommendations -- all algos)?, \n"
             "==>> "
         )
@@ -4011,7 +4013,11 @@ def main():
                 sim_sig_weighting = 0 # TFIDF doesn't use a sim sig weighting
                 n_neighbors = 0 # TFIDF doesn't use n_neighbors
                 algo = new_get_TFIDF_recommendations
-                sim_matrix = cosim_matrix
+                # Make cosim matrix
+                R = to_array(prefs)
+                feature_str = to_string(features)
+                feature_docs = to_docs(feature_str, genres)
+                cosim_matrix = cosine_sim(feature_docs)
                 sim = 'TFIDF'
                 mov = movies
 
@@ -4019,7 +4025,7 @@ def main():
                     prefs,
                     sim,
                     algo,
-                    sim_matrix,
+                    cosim_matrix,
                     dataset_name,
                     tfidf_threshold,
                     sim_sig_weighting,
