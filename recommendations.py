@@ -4036,7 +4036,7 @@ def main():
         elif file_io == 'HYB-GRID' or file_io == 'hyb-grid':
 
             n_neighbors = 100
-            sim_sig_weighting = 100
+            sim_sig_weighting = 100 # best is 100 from midterm
             tfidf_thresholds = [0, 0.3061939222, 0.5764484463073936, 0.8467029704]
             weighting_factors = [.25, .5, .75, 1]
             sim_methods = [sim_distance, sim_pearson]
@@ -4080,8 +4080,6 @@ def main():
                             weighting_factor
                         )
 
-            
-        
         else:
             done = True
 

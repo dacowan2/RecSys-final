@@ -31,9 +31,9 @@ n_users = len(pd.unique(dataset['user_id']))
 train, test_temp = train_test_split(dataset, test_size=0.2, random_state=42)
 val, test = train_test_split(test_temp, test_size=0.5, random_state=42)
 
-model_num = 40
+model_num = 80
 n_factors_list = [5,25,50,100,200]
-n_nodes_per_layer_list = [256, 128, 64, 32, 16, 8, 4, 2]
+n_nodes_per_layer_list = [64, 32, 16, 8, 4, 2]
 lr_list = [1e-1, 1e-2, 1e-3, 1e-4]
 dropout_prob = 0.2
 epochs = 250
