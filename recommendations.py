@@ -24,6 +24,21 @@ import math
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import csv
+from os import getcwd
+from numpy.linalg import solve ## needed for als
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+from time import time
+from copy import deepcopy
+import sklearn.model_selection
+from keras.models import load_model
+from keras.callbacks import EarlyStopping
+import sklearn.metrics
+from keras.layers import Input, Embedding, Flatten, Dot, Dense, Concatenate, BatchNormalization, Dropout
+from keras.models import Model, load_model
+from keras.losses import MeanSquaredError
+from keras.optimizers import Adam
 
 warnings.filterwarnings("ignore")  # ("once") #("module") #("default") #("error")
 
@@ -2240,7 +2255,14 @@ def train_test_split(ratings, TRAIN_ONLY):
     #print('TRAIN_ONLY (in split) =', TRAIN_ONLY) ##debug
     
     return train, test
-    
+
+
+def train_test_validation_split(dataset):
+    train, test_temp = sklearn.model_selection.train_test_split(dataset, test_size=0.2, random_state=42)
+    val, test = sklearn.model_selection.train_test_split(test_temp, test_size=0.5, random_state=42)
+
+    return train, test, val
+
 
 def test_train_info(test, train):
     ''' print test/train info   '''
@@ -2326,6 +2348,11 @@ def main():
     print("\npath: %s" % path)  # debug
     done = False
     prefs = {}
+    pd_rml_ran = False
+    pd_r_ran = False
+    ttv_ran = False
+    ncf_built = False
+    ncf_trained = False
 
     while not done:
         print()
@@ -2405,11 +2432,12 @@ def main():
             names = ['user_id', 'item_id', 'rating', 'timestamp'] # column headings
             
             #Create pandas dataframe
-            df = pd.read_csv(path_name + data_folder + 'critics_ratings_userIDs.data', sep='\t', names=names) # for critics
+            df = pd.read_csv(path + data_folder + 'critics_ratings_userIDs.data', sep='\t', names=names) # for critics
             ratings = file_info(df)
             
             # set test/train in case they were set by a previous file I/O command
             test_train_done = False
+            pd_r_ran = True
             print()
             print('Test and Train arrays are empty!')
             print()
@@ -2426,7 +2454,12 @@ def main():
             movies, genres, features = from_file_to_2D(
                 path, file_dir + genrefile, file_dir + itemfile
             )
+            print('Movies:')
+            print(movies)
 
+            print()
+            print('Movie to ID: ')
+            print(movie_to_ID(movies))
             ##
             print(
                 "Number of users: %d\nList of users [0:10]:" % len(prefs),
@@ -2456,10 +2489,13 @@ def main():
             names = ['user_id', 'item_id', 'rating', 'timestamp'] # column headings
     
             #Create pandas dataframe
-            df = pd.read_csv(path_name + data_folder + 'u.data', sep='\t', names=names) # for ml-100k
+            df = pd.read_csv(path + data_folder + 'u.data', sep='\t', names=names) # for ml-100k
             ratings = file_info(df)
             
+            n_items = len(pd.unique(df['item_id']))
+            n_users = len(pd.unique(df['user_id']))
             test_train_done = False
+            pd_rml_ran = True
             print()
             print('Test and Train arrays are empty!')
             print()
@@ -3184,7 +3220,7 @@ def main():
                 print("Empty dictionary, R(ead) in some data!")
        
         elif file_io == 'T' or file_io == 't':
-            if len(ratings) > 0:
+            if len(prefs) > 0:
                 answer = input('Generate both test and train data? Y or y, N or n: ')
                 if answer == 'N' or answer == 'n':
                     TRAIN_ONLY = True
@@ -3694,32 +3730,6 @@ def main():
                 tb = traceback.format_exc()
                 print(str(tb))
 
-        elif file_io == "REC" or file_io == "rec":
-            algo_input = str(input("Enter algo - user (u) or item (i): ")).lower()
-            sim_input = str(
-                input("Enter similarity calculation - distance (d) or pearson (p): ")
-            ).lower()
-            user = str(input("Enter User name/identifier: "))
-            num_recs = int(input("Enter number of recommendations: "))
-            try:
-                if algo_input == "u":
-                    algo = getRecommendedUsers
-                    matrix = usersim
-                else:
-                    algo = getRecommendedItems
-                    matrix = itemsim
-            except Exception as ex:
-                print(f"Error: {ex}. Try running sim or simu command first.")
-
-            if sim_input == "d":
-                sim = sim_distance
-            else:
-                sim = sim_pearson
-
-            recs = algo(prefs, matrix, user, 1)
-
-            print(f"CF recs using {algo} for {user}: {recs[:num_recs]}")
-
         elif file_io == "TFIDF" or file_io == "tfidf":
             print()
             # determine the U-I matrix to use ..
@@ -3808,6 +3818,7 @@ def main():
                 print()
 
         elif file_io == "HYB" or file_io == "hyb":
+
             weighting_factors = [0, 0.25, 0.5, 0.75, 1]
             weighting_factor = float(
                 input("Weighting factor (0, 0.25, 0.5, 0.75, or 1): ")
@@ -3821,17 +3832,116 @@ def main():
             else:
                 print("Input a valid weighting factor")
 
+        elif file_io == 'TTV' or file_io == 'ttv':
+            if pd_rml_ran == True or pd_r_ran == True:
+                print('Creating train, test, and validation splits...')
+                train, test, val = train_test_validation_split(df)
+                print('Finished creating train, test, and validation splits!')
+
+                ttv_ran = True
+            else:
+                print('Run PD-RML or PD-R first!')
+        
+        elif file_io == 'BNCF' or file_io == 'bncf':
+            if pd_r_ran == True or pd_rml_ran == True:
+
+                n_factors = int(input('Number of Factors: '))
+                lr = float(input('Learning rate: '))
+                dropout_prob = float(input('Dropout probability (default = 0.2): '))
+                n_nodes_per_layer_list = input('Number of nodes per layer (ie. [64, 32, 16, 8, 4, 2]): ')
+                n_nodes_per_layer_list = n_nodes_per_layer_list.strip('][').split(', ')
+                n_nodes_per_layer_list = [int(i) for i in n_nodes_per_layer_list]
+                # creating item embedding path
+                movie_input = Input(shape=[1], name="Item-Input")
+                movie_embedding = Embedding(n_items+1, n_factors, name="Item-Embedding")(movie_input)
+                movie_vec = Flatten(name="Flatten-Items")(movie_embedding)
+
+                # creating user embedding path
+                user_input = Input(shape=[1], name="User-Input")
+                user_embedding = Embedding(n_users+1, n_factors, name="User-Embedding")(user_input)
+                user_vec = Flatten(name="Flatten-Users")(user_embedding)
+
+                # concatenate features
+                conc = Concatenate()([movie_vec, user_vec])
+
+                # add fully-connected-layers
+                dense = Dense(n_nodes_per_layer_list[0], activation='relu')(conc)
+                dropout = Dropout(dropout_prob)(dense)
+                batch_norm = BatchNormalization()(dropout)
+
+                for k, n_nodes in enumerate(n_nodes_per_layer_list[1:-1]):
+                    dense = Dense(n_nodes, activation='relu')(batch_norm)
+                    dropout = Dropout(dropout_prob)(dense)
+                    batch_norm = BatchNormalization()(dropout)
+
+                dense = Dense(n_nodes_per_layer_list[-1], activation='relu')(batch_norm)
+                out = Dense(1)(dense)
+
+                # Create model and compile it
+                model = Model([user_input, movie_input], out)
+                model.compile(optimizer=Adam(learning_rate=lr), loss=MeanSquaredError())
+                model.summary()
+            
+                ncf_built = True
+            else: 
+                print('Run PD-RML or PD-R first!')
+
+        elif file_io == 'TNCF' or file_io == 'tncf':
+            if ncf_built == True and ttv_ran == True:
+                epochs = int(input('Number of Epochs: ')) # default 250
+                batch_size = int(input('Batch size: '))
+                patience = int(input('Patience: '))
+                early_stopping_metric = 'val_loss'
+
+                callback = EarlyStopping(monitor=early_stopping_metric, patience=patience)
+                history = model.fit(x = [train.user_id, train.item_id], 
+                                    y = train.rating, 
+                                    validation_data = ((val.user_id, val.item_id), val.rating), 
+                                    epochs=epochs, 
+                                    verbose=1, 
+                                    batch_size = batch_size, 
+                                    callbacks = [callback])
+                ncf_trained = True
+            else:
+                print('Run BNCF and TTV first!')
+
+        elif file_io == 'ENCF' or file_io == 'encf':
+            if ncf_trained == True:
+                predictions = model.predict([test.user_id, test.item_id])
+                preds_std = np.std(predictions)
+
+                predictions_list = []
+                for pred_rating in predictions:
+                    predictions_list.append(pred_rating[0])
+
+                ratings_preds_array = np.array(predictions_list).astype('float64')
+                ratings_actual_array = np.array(test.rating)
+
+                test_mse = sklearn.metrics.mean_squared_error(ratings_actual_array, ratings_preds_array)
+
+                print(f'STD of predictions on test split: {preds_std}')
+                print(f'MSE of predictions on test split: {test_mse}')
+            
+            else:
+                print('Run TNCF first!')
+
+        elif file_io == 'SNCF' or file_io == 'sncf':
+            model.save('NCF_model')
+
+        elif file_io == 'RNCF' or file_io == 'rncf':
+            model = load_model('NCF_model')
+            ncf_trained = True
+        
         elif file_io == "RECS" or file_io == "recs":
             print()
 
-            print("critics")
             algo = input("Enter UU-CF, II-CF, MF-SGD, MF-ALS, NCF, TFIDF, Hybrid: ")
             userID = input(
                         "Enter username (for critics) or return to quit: "
                     )
-            n_recs = int(input('Enter number of recommendatoins: '))
+            n_recs = int(input('Enter number of recommendations: '))
 
-            if len(prefs) > 0 and len(prefs) <= 10:  # critics
+            if (len(prefs) > 0 and len(prefs) <= 10) or  (df.shape[0] > 0 and df.shape[0] <= 10):  # critics
                 
                 if algo == 'UU-CF' or algo == 'uu-cf':
                     sim_input = str(input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
@@ -3866,8 +3976,19 @@ def main():
                     print('fix')
 
                 elif algo == 'NCF' or algo == 'ncf':
-                    print('fix')
+                    if ncf_trained == True:
+                        
+                        single_user_all_items_pairs_list = []
+                        for i in range(n_items):
+                            single_user_all_items_pairs_list.append([userID, i])
 
+                        users_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,0].reshape(-1,1)
+                        items_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,1].reshape(-1,1)
+                        all_predictions = model.predict([users_in_single_user_all_items_pairs, items_in_single_user_all_items_pairs])
+                        
+                        recs = [(float(all_predictions[i]), movies[str(items_in_single_user_all_items_pairs[i])]) for i in range(len(items_in_single_user_all_items_pairs))]
+                        print(f"recs for {userID}: {str(recs)}")
+                
                 elif algo == "TFIDF" or algo == "tfidf":
                     if tfidf_ran:
                         
@@ -3907,29 +4028,7 @@ def main():
                 else:
                     print("Algorithm %s is invalid, try again!" % algo)
 
-            elif len(prefs) > 10:
-
-                if algo == "TEST" or algo == "test":
-                    if tfidf_ran:
-                        if userID != "":
-                            # Go run the TFIDF algo
-                            print(
-                                "Go run the TFIDF algo for %s, using threshold of %f"
-                                % (userID, threshold)
-                            )
-                            item = "Rich Man's Wife, The (1996)"
-                            recs = new_get_hybrid_recommendations(
-                                prefs,
-                                updated_cosim_matrix,
-                                userID,
-                                threshold,
-                                item,
-                                movies,
-                            )
-                            print(f"recs for {userID}: {str(recs)}")
-                    else:
-                        print("Run the TFIDF command first to set up TFIDF data")
-                    pass
+            elif len(prefs) > 10 or df.shape[0] > 10:
 
                 if algo == 'UU-CF' or algo == 'uu-cf':
                     sim_input = str(input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
@@ -3964,11 +4063,30 @@ def main():
                     print('fix')
 
                 elif algo == 'NCF' or algo == 'ncf':
-                    print('fix')
+                    if ncf_trained == True:
+                        print('INSIDE')
+                        single_user_all_items_pairs_list = []
+                        for i in range(n_items):
+                            single_user_all_items_pairs_list.append([int(userID), int(i)])
+                        print('2')
+                        users_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,0].reshape(-1,1)
+                        items_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,1].reshape(-1,1)
+                        print("users_in_single_user_all_items_pairs")
+                        print(users_in_single_user_all_items_pairs)
+                        print("items_in_single_user_all_items_pairs")
+                        print(items_in_single_user_all_items_pairs)
+                        print('3')
+                        all_predictions = model.predict([users_in_single_user_all_items_pairs, items_in_single_user_all_items_pairs])
+                        print('4')
+                        recs = [(float(all_predictions[i]), movies[str(items_in_single_user_all_items_pairs[i][0] + 1)]) for i in range(len(items_in_single_user_all_items_pairs))]
+                        recs.sort(reverse = True)
+
+                        print(f"recs for {userID}: {str(recs[:n_recs])}")
 
                 elif algo == "TFIDF" or algo == "tfidf":
                     if tfidf_ran:
                         if userID != "":
+                            threshold = float(input("Similarity threshold: "))
                             # Go run the TFIDF algo
                             recs = get_TFIDF_recommendations(
                                 prefs, cosim_matrix, userID, n_recs, movies, threshold
@@ -3982,7 +4100,7 @@ def main():
                         userID = input("Enter userid (for ml-100k) or return to quit: ")
                         if userID != "":
                             # Go run the hybrid algo
-                            print("Go run the hybrid algo for %s" % userID)
+                            threshold = float(input("Similarity threshold: "))
                             n = int(input("Enter number of recommendations: "))
                             recs = get_hybrid_recommendations(
                                 prefs,
@@ -4081,7 +4199,11 @@ def main():
                         )
 
         else:
-            done = True
+            done_input = str(input('Are you finished? '))
+            if done_input == 'Yes' or done_input == 'yes':
+                done = True
+            else:
+                print('Try another command!')
 
     print("Goodbye!")
 

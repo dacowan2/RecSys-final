@@ -1,6 +1,6 @@
 import pandas as pd
 model_info_all_list = []
-for model_num in range(60):
+for model_num in range(100):
     model_info_df = pd.read_csv(f'models/model_{model_num}/model_info.csv')
     model_info_single_list = list(model_info_df.iloc[0])[1:]
     model_info_all_list.append(model_info_single_list)
