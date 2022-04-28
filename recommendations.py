@@ -10,22 +10,27 @@ CSC381 Programmer/Researcher: Brad Shook, Daniel Cowan, Drew Dibble
 import os
 from math import sqrt
 from numpy import mean, std, array, median, square
+from numpy.linalg import solve
 from scipy.stats import spearmanr
 from scipy.stats import kendalltau
 import pandas as pd
+import csv
 import matplotlib.pyplot as plt
 import pickle
-import time
+from time import time
 import warnings
 import traceback
 from turtle import color
+from copy import deepcopy
 import numpy as np
 import math
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 
-warnings.filterwarnings("ignore")  # ("once") #("module") #("default") #("error")
+# ("once") #("module") #("default") #("error")
+warnings.filterwarnings("ignore")
 
 MAX_PRINT = 10
 
@@ -160,7 +165,8 @@ def data_stats(prefs, filename):
     n_items = len(movie_titles_set)
 
     # Find average number of ratings per user
-    ratings_per_user_list = [x[1] for x in list(ratings_per_user_dict.values())]
+    ratings_per_user_list = [x[1]
+                             for x in list(ratings_per_user_dict.values())]
     avg_ratings_per_user = mean(ratings_per_user_list)
     std_ratings_per_user = std(ratings_per_user_list)
     min_ratings_per_user = min(ratings_per_user_list)
@@ -202,7 +208,8 @@ def data_stats(prefs, filename):
     )
     print(f"Min number of ratings for single user: {min_ratings_per_user}")
     print(f"Max number of ratings for single user: {max_ratings_per_user}")
-    print(f"Median number of ratings for single user: {int(median_ratings_per_user)}")
+    print(
+        f"Median number of ratings for single user: {int(median_ratings_per_user)}")
 
     print(
         "User-Item Matrix Sparsity: {sparsity:.2f}%".format(
@@ -439,7 +446,6 @@ def sim_tanimoto(prefs, p1, p2, sim_sig_weighting):
 
 
 def sim_jaccard(prefs, p1, p2, sim_sig_weighting):
-
     """
     The Jaccard similarity index (sometimes called the Jaccard similarity coefficient)
     compares members for two sets to see which members are shared and which are distinct.
@@ -693,7 +699,8 @@ def getRecommendations(prefs, person, similarity=sim_pearson):
                 simSums[item] += sim
 
     # Create the normalized list
-    rankings = [(total / simSums[item], item) for item, total in totals.items()]
+    rankings = [(total / simSums[item], item)
+                for item, total in totals.items()]
 
     # Return the sorted list
     rankings.sort()
@@ -778,7 +785,8 @@ def loo_cv(prefs, metric, sim, algo, dataset_name):
             mse = (1 / len(error_list)) * sum(error_array ** 2)
             rmse = sqrt((1 / len(error_list)) * sum(error_array ** 2))
             mae = (1 / len(error_list)) * sum(abs(error_array))
-            print(f"MSE: {round(mse,5)}, RMSE: {round(rmse,5)}, MAE: {round(mae,5)}")
+            print(
+                f"MSE: {round(mse,5)}, RMSE: {round(rmse,5)}, MAE: {round(mae,5)}")
 
     print(
         "Final results froom loo_cv_sim: len(prefs)={prefs_length_val}, sim={sim_val}, {function_val}".format(
@@ -939,9 +947,10 @@ def getRecommendedItems(prefs, itemMatch, user, threshold):
             totalSim[item2] += similarity
 
     # Divide each total score by total weighting to get an average
-    print('scores items')
-    print(scores.items())
-    rankings = [(score / totalSim[item], item) for item, score in scores.items()]
+    # print('scores items')
+    # print(scores.items())
+    rankings = [(score / totalSim[item], item)
+                for item, score in scores.items()]
 
     # Return the rankings from highest to lowest
     rankings.sort()
@@ -989,7 +998,8 @@ def getRecommendedUsers(prefs, userMatch, user, threshold):
                 simSums[item] += sim
 
     # Create the normalized list
-    rankings = [(total / simSums[item], item) for item, total in totals.items()]
+    rankings = [(total / simSums[item], item)
+                for item, total in totals.items()]
 
     # Return the sorted list
     rankings.sort()
@@ -1127,7 +1137,7 @@ def get_all_II_recs(prefs, itemsim, sim_method, num_users=10, top_N=5):
 
 
 def loo_cv_sim(
-    prefs, sim, algo, sim_matrix, dataset_name, threshold, sim_sig_weighting, neighbors, movies, weighting_factor = 0
+    prefs, sim, algo, sim_matrix, dataset_name, threshold, sim_sig_weighting, neighbors, movies, weighting_factor=0
 ):
     """
     Leave-One_Out Evaluation: evaluates recommender system ACCURACY
@@ -1175,7 +1185,6 @@ def loo_cv_sim(
 
             del prefs[user][item]
 
-
             # Get a list of predicted ratings for item
             prediction = algo(prefs, sim_matrix, user, threshold, item, movies)
 
@@ -1185,7 +1194,6 @@ def loo_cv_sim(
                 error_list.append(curr_error)
 
             prefs[user][item] = removed_rating
-        
 
     secs = time.time() - start
     print(f"Number of users processed: {i}")
@@ -1210,7 +1218,8 @@ def loo_cv_sim(
             f"MSE for {dataset_name}: {round(mse,5)}, len(SE list): {len(error_array)} using {sim}"
         )
 
-        coverage = len(error_array) / sum([len(prefs[person].values()) for person in prefs])
+        coverage = len(error_array) / \
+            sum([len(prefs[person].values()) for person in prefs])
 
     else:
         mse = -1
@@ -1465,7 +1474,8 @@ def to_string(features):
             row += str(features[i][j])
         feature_str.append(row)
     print(
-        "to_string -- height: %d, width: %d" % (len(feature_str), len(feature_str[0]))
+        "to_string -- height: %d, width: %d" % (
+            len(feature_str), len(feature_str[0]))
     )
     return feature_str
 
@@ -1478,8 +1488,10 @@ def to_docs(features_str, genres):
         row = ""
         for i in range(len(doc_str)):
             if doc_str[i] == "1":
-                row += genres[i] + " "  # map the indices to the actual genre string
-        feature_docs.append(row.strip())  # and remove that pesky space at the end
+                # map the indices to the actual genre string
+                row += genres[i] + " "
+        # and remove that pesky space at the end
+        feature_docs.append(row.strip())
 
     print("to_docs -- height: %d, width: varies" % (len(feature_docs)))
     return feature_docs
@@ -1592,14 +1604,13 @@ def new_get_TFIDF_recommendations(
     userRatings = prefs[user]
 
     cur_item_index = int(movies_inv[cur_item]) - 1
-    
+
     # print(f'User ratings: {userRatings}')
 
     # print(f'Making prediction for {user} for {cur_item}')
     # loop through items this user has rated
     for item in userRatings:
         rating = userRatings[item]
-
 
         item_index = int(movies_inv[item]) - 1
         sim = cosim_matrix[item_index][cur_item_index]
@@ -1608,7 +1619,7 @@ def new_get_TFIDF_recommendations(
         # make sure we pass threshold test
         if sim <= threshold:
             continue
-    
+
         # Weighted sum of rating times similarity
         scores.setdefault(cur_item, 0)
         scores[cur_item] += sim * rating
@@ -1784,138 +1795,139 @@ def new_get_hybrid_recommendations(
 
 
 class ExplicitMF():
-    def __init__(self, 
+    def __init__(self,
                  ratings,
                  n_factors=40,
                  learning='sgd',
-                 sgd_alpha = 0.1,
-                 sgd_beta = 0.1,
-                 sgd_random = False,
-                 item_fact_reg=0.0, 
+                 sgd_alpha=0.1,
+                 sgd_beta=0.1,
+                 sgd_random=False,
+                 item_fact_reg=0.0,
                  user_fact_reg=0.0,
                  item_bias_reg=0.0,
                  user_bias_reg=0.0,
-                 max_iters = 20,
+                 max_iters=20,
                  verbose=True):
         """
         Train a matrix factorization model to predict empty 
         entries in a matrix. The terminology assumes a 
         ratings matrix which is ~ user x item
-        
+
         Params
         ======
         ratings : (ndarray)
             User x Item matrix with corresponding ratings
             Note: can be full ratings matrix or train matrix
-        
+
         n_factors : (int)
             Number of latent factors to use in matrix factorization model
-            
+
         learning : (str)
             Method of optimization. Options include 'sgd' or 'als'.
-        
+
         sgd_alpha: (float)
             learning rate for sgd
-            
+
         sgd_beta:  (float)
             regularization for sgd
-            
+
         sgd_random: (boolean)
             False makes use of random.seed(0)
             False means don't make it random (ie, make it predictable)
             True means make it random (ie, changee everytime code is run)
-        
+
         item_fact_reg : (float)
             Regularization term for item latent factors
             Note: currently, same value as user_fact_reg
-        
+
         user_fact_reg : (float)
             Regularization term for user latent factors
             Note: currently, same value as item_fact_reg
-            
+
         item_bias_reg : (float)
             Regularization term for item biases
             Note: for later use, not used currently
-        
+
         user_bias_reg : (float)
             Regularization term for user biases
             Note: for later use, not used currently
-            
+
         max_iters : (integer)
             maximum number of iterations
-        
+
         verbose : (bool)
             Whether or not to printout training progress
-            
-            
+
+
         Original Source info: 
             https://blog.insightdatascience.com/explicit-matrix-factorization-als-sgd-and-all-that-jazz-b00e4d9b21ea#introsgd
             https://gist.github.com/EthanRosenthal/a293bfe8bbe40d5d0995#file-explicitmf-py
         """
-        
-        self.ratings = ratings 
+
+        self.ratings = ratings
         self.n_users, self.n_items = ratings.shape
         self.n_factors = n_factors
         self.item_fact_reg = item_fact_reg
         self.user_fact_reg = user_fact_reg
-        self.item_bias_reg = item_bias_reg 
-        self.user_bias_reg = user_bias_reg 
+        self.item_bias_reg = item_bias_reg
+        self.user_bias_reg = user_bias_reg
         self.learning = learning
         if self.learning == 'als':
             np.random.seed(0)
         if self.learning == 'sgd':
             self.sample_row, self.sample_col = self.ratings.nonzero()
             self.n_samples = len(self.sample_row)
-            self.sgd_alpha = sgd_alpha # sgd learning rate, alpha
-            self.sgd_beta = sgd_beta # sgd regularization, beta
-            self.sgd_random = sgd_random # randomize
+            self.sgd_alpha = sgd_alpha  # sgd learning rate, alpha
+            self.sgd_beta = sgd_beta  # sgd regularization, beta
+            self.sgd_random = sgd_random  # randomize
             if self.sgd_random == False:
-                np.random.seed(0) # do not randomize
+                np.random.seed(0)  # do not randomize
         self._v = verbose
         self.max_iters = max_iters
-        self.nonZero = ratings > 0 # actual values
-        
+        self.nonZero = ratings > 0  # actual values
+
         print()
         if self.learning == 'als':
-            print('ALS instance parameters:\nn_factors=%d, user_reg=%.5f,  item_reg=%.5f, num_iters=%d' %\
-              (self.n_factors, self.user_fact_reg, self.item_fact_reg, self.max_iters))
-        
+            print('ALS instance parameters:\nn_factors=%d, user_reg=%.5f,  item_reg=%.5f, num_iters=%d' %
+                  (self.n_factors, self.user_fact_reg, self.item_fact_reg, self.max_iters))
+
         elif self.learning == 'sgd':
-            print('SGD instance parameters:\nnum_factors K=%d, learn_rate alpha=%.5f, reg beta=%.5f, num_iters=%d, sgd_random=%s' %\
-              (self.n_factors, self.sgd_alpha, self.sgd_beta, self.max_iters, self.sgd_random ) )
+            print('SGD instance parameters:\nnum_factors K=%d, learn_rate alpha=%.5f, reg beta=%.5f, num_iters=%d, sgd_random=%s' %
+                  (self.n_factors, self.sgd_alpha, self.sgd_beta, self.max_iters, self.sgd_random))
         print()
 
-    def train(self, n_iter=10): 
+    def train(self, n_iter=10):
         """ Train model for n_iter iterations from scratch."""
-        
+
         def normalize_row(x):
-            norm_row =  x / sum(x) # weighted values: each row adds up to 1
+            norm_row = x / sum(x)  # weighted values: each row adds up to 1
             return norm_row
 
-        # initialize latent vectors        
-        self.user_vecs = np.random.normal(scale=1./self.n_factors,\
+        # initialize latent vectors
+        self.user_vecs = np.random.normal(scale=1./self.n_factors,
                                           size=(self.n_users, self.n_factors))
         self.item_vecs = np.random.normal(scale=1./self.n_factors,
                                           size=(self.n_items, self.n_factors))
-        
+
         if self.learning == 'als':
-            ## Try one of these. apply_long_axis came from Explicit_RS_MF_ALS()
-            ##                                             Daniel Nee code
-            
+            # Try one of these. apply_long_axis came from Explicit_RS_MF_ALS()
+            # Daniel Nee code
+
             self.user_vecs = abs(np.random.randn(self.n_users, self.n_factors))
             self.item_vecs = abs(np.random.randn(self.n_items, self.n_factors))
-            
-            #self.user_vecs = np.apply_along_axis(normalize_row, 1, self.user_vecs) # axis=1, across rows
-            #self.item_vecs = np.apply_along_axis(normalize_row, 1, self.item_vecs) # axis=1, across rows
-            
+
+            # self.user_vecs = np.apply_along_axis(normalize_row, 1, self.user_vecs) # axis=1, across rows
+            # self.item_vecs = np.apply_along_axis(normalize_row, 1, self.item_vecs) # axis=1, across rows
+
             self.partial_train(n_iter)
-            
+
         elif self.learning == 'sgd':
             self.user_bias = np.zeros(self.n_users)
             self.item_bias = np.zeros(self.n_items)
-            self.global_bias = np.mean(self.ratings[np.where(self.ratings != 0)])
+            self.global_bias = np.mean(
+                self.ratings[np.where(self.ratings != 0)])
             self.partial_train(n_iter)
-    
+
     def partial_train(self, n_iter):
         """ 
         Train model for n_iter iterations. 
@@ -1923,22 +1935,22 @@ class ExplicitMF():
         Remains in the while loop for a number of iterations, calculated from
         the contents of the iter_array in calculate_learning_curve()
         """
-        
+
         ctr = 1
         while ctr <= n_iter:
 
             if self.learning == 'als':
-                self.user_vecs = self.als_step(self.user_vecs, 
-                                               self.item_vecs, 
-                                               self.ratings, 
-                                               self.user_fact_reg, 
+                self.user_vecs = self.als_step(self.user_vecs,
+                                               self.item_vecs,
+                                               self.ratings,
+                                               self.user_fact_reg,
                                                type='user')
-                self.item_vecs = self.als_step(self.item_vecs, 
-                                               self.user_vecs, 
-                                               self.ratings, 
-                                               self.item_fact_reg, 
+                self.item_vecs = self.als_step(self.item_vecs,
+                                               self.user_vecs,
+                                               self.ratings,
+                                               self.item_fact_reg,
                                                type='item')
-                
+
             elif self.learning == 'sgd':
                 self.training_indices = np.arange(self.n_samples)
                 np.random.shuffle(self.training_indices)
@@ -1955,23 +1967,28 @@ class ExplicitMF():
         ALS algo step.
         Solve for the latent vectors specified by type parameter: user or item
         """
-        
-        #lv_shape = latent_vectors.shape[0] ## debug
-        
+
+        # lv_shape = latent_vectors.shape[0] ## debug
+
         if type == 'user':
 
-            for u in range(latent_vectors.shape[0]): # latent_vecs ==> user_vecs
-                #r_u = ratings[u, :] ## debug
-                #fvT = fixed_vecs.T ## debug
-                idx = self.nonZero[u,:] # get the uth user profile with booleans 
-                                        # (True when there are ratings) based on 
-                                        # ratingsMatrix, n x 1
-                nz_fixed_vecs = fixed_vecs[idx,] # get the item vector entries, non-zero's x f
-                YTY = nz_fixed_vecs.T.dot(nz_fixed_vecs) # fixed_vecs are item_vecs
+            # latent_vecs ==> user_vecs
+            for u in range(latent_vectors.shape[0]):
+                # r_u = ratings[u, :] ## debug
+                # fvT = fixed_vecs.T ## debug
+                # get the uth user profile with booleans
+                idx = self.nonZero[u, :]
+                # (True when there are ratings) based on
+                # ratingsMatrix, n x 1
+                # get the item vector entries, non-zero's x f
+                nz_fixed_vecs = fixed_vecs[idx, ]
+                # fixed_vecs are item_vecs
+                YTY = nz_fixed_vecs.T.dot(nz_fixed_vecs)
                 lambdaI = np.eye(YTY.shape[0]) * _lambda
-                
+
                 latent_vectors[u, :] = \
-                    solve( (YTY + lambdaI) , nz_fixed_vecs.T.dot (ratings[u, idx] ) )
+                    solve((YTY + lambdaI),
+                          nz_fixed_vecs.T.dot(ratings[u, idx]))
 
                 '''
                 ## debug
@@ -1983,53 +2000,58 @@ class ExplicitMF():
                     print('new user vecs:\n', latent_vectors[u, :])
                 ## debug
                 '''
-                    
+
         elif type == 'item':
-            
-            for i in range(latent_vectors.shape[0]): #latent_vecs ==> item_vecs
-                idx = self.nonZero[:,i] # get the ith item "profile" with booleans 
-                                        # (True when there are ratings) based on 
-                                        # ratingsMatrix, n x 1
-                nz_fixed_vecs = fixed_vecs[idx,] # get the item vector entries, non-zero's x f
-                XTX = nz_fixed_vecs.T.dot(nz_fixed_vecs) # fixed_vecs are user_vecs
+
+            # latent_vecs ==> item_vecs
+            for i in range(latent_vectors.shape[0]):
+                # get the ith item "profile" with booleans
+                idx = self.nonZero[:, i]
+                # (True when there are ratings) based on
+                # ratingsMatrix, n x 1
+                # get the item vector entries, non-zero's x f
+                nz_fixed_vecs = fixed_vecs[idx, ]
+                # fixed_vecs are user_vecs
+                XTX = nz_fixed_vecs.T.dot(nz_fixed_vecs)
                 lambdaI = np.eye(XTX.shape[0]) * _lambda
                 latent_vectors[i, :] = \
-                    solve( (XTX + lambdaI) , nz_fixed_vecs.T.dot (ratings[idx, i] ) )
+                    solve((XTX + lambdaI),
+                          nz_fixed_vecs.T.dot(ratings[idx, i]))
 
         return latent_vectors
 
     def sgd(self):
         ''' run sgd algo '''
-        
+
         for idx in self.training_indices:
             u = self.sample_row[idx]
             i = self.sample_col[idx]
             prediction = self.predict(u, i)
-            e = (self.ratings[u,i] - prediction) # error
-            
+            e = (self.ratings[u, i] - prediction)  # error
+
             # Update biases
             self.user_bias[u] += self.sgd_alpha * \
-                                (e - self.sgd_beta * self.user_bias[u])
+                (e - self.sgd_beta * self.user_bias[u])
             self.item_bias[i] += self.sgd_alpha * \
-                                (e - self.sgd_beta * self.item_bias[i])
-            
+                (e - self.sgd_beta * self.item_bias[i])
+
             # Create copy of row of user_vecs since we need to update it but
-            #    use older values for update on item_vecs, 
+            #    use older values for update on item_vecs,
             #    so make a deepcopy of previous user_vecs
             previous_user_vecs = deepcopy(self.user_vecs[u, :])
-            
+
             # Update latent factors
             self.user_vecs[u, :] += self.sgd_alpha * \
-                                    (e * self.item_vecs[i, :] - \
-                                     self.sgd_beta * self.user_vecs[u,:])
+                (e * self.item_vecs[i, :] -
+                 self.sgd_beta * self.user_vecs[u, :])
             self.item_vecs[i, :] += self.sgd_alpha * \
-                                    (e * previous_user_vecs - \
-                                     self.sgd_beta * self.item_vecs[i,:])           
-    
+                (e * previous_user_vecs -
+                 self.sgd_beta * self.item_vecs[i, :])
+
     def calculate_learning_curve(self, iter_array, test):
         """
         Keep track of MSE as a function of training iterations.
-        
+
         Params
         ======
         iter_array : (list)
@@ -2037,94 +2059,95 @@ class ExplicitMF():
             the learning curve. e.g. [1, 5, 10, 20]
         test : (2D ndarray)
             Testing dataset (assumed to be user x item)
-        
-        
-        
+
+
+
         This function creates two new class attributes:
-        
+
         train_mse : (list)
             Training data MSE values for each value of iter_array
         test_mse : (list)
             Test data MSE values for each value of iter_array
         """
-        
+
         print()
         if self.learning == 'als':
             print('Runtime parameters:\nn_factors=%d, user_reg=%.5f, item_reg=%.5f,'
                   ' max_iters=%d,'
-                  ' \nratings matrix: %d users X %d items' %\
-                  (self.n_factors, self.user_fact_reg, self.item_fact_reg, 
+                  ' \nratings matrix: %d users X %d items' %
+                  (self.n_factors, self.user_fact_reg, self.item_fact_reg,
                    self.max_iters, self.n_users, self.n_items))
         if self.learning == 'sgd':
             print('Runtime parameters:\nn_factors=%d, learning_rate alpha=%.3f,'
                   ' reg beta=%.5f, max_iters=%d, sgd_random=%s'
-                  ' \nratings matrix: %d users X %d items' %\
-                  (self.n_factors, self.sgd_alpha, self.sgd_beta, 
+                  ' \nratings matrix: %d users X %d items' %
+                  (self.n_factors, self.sgd_alpha, self.sgd_beta,
                    self.max_iters, self.sgd_random, self.n_users, self.n_items))
-        print()       
-        
+        print()
+
         iter_array.sort()
-        self.train_mse =[]
+        self.train_mse = []
         self.test_mse = []
         iter_diff = 0
-        
+
         start_time = time()
         stop_time = time()
-        elapsed_time = (stop_time-start_time) #/60
-        print ( 'Elapsed train/test time %.2f secs' % elapsed_time )        
-        
+        elapsed_time = (stop_time-start_time)  # /60
+        print('Elapsed train/test time %.2f secs' % elapsed_time)
+
         # Loop through number of iterations
         for (i, n_iter) in enumerate(iter_array):
             if self._v:
-                print ('Iteration: {}'.format(n_iter))
+                print('Iteration: {}'.format(n_iter))
             if i == 0:
-                self.train(n_iter - iter_diff) # init training, run first iter
+                self.train(n_iter - iter_diff)  # init training, run first iter
             else:
-                self.partial_train(n_iter - iter_diff) # run more iterations
-                    # .. as you go from one element of iter_array to another
+                self.partial_train(n_iter - iter_diff)  # run more iterations
+                # .. as you go from one element of iter_array to another
 
-            predictions = self.predict_all() # calc dot product of p and qT
+            predictions = self.predict_all()  # calc dot product of p and qT
             # calc train  errors -- predicted vs actual
             self.train_mse += [self.get_mse(predictions, self.ratings)]
-            if test.any() > 0: # check if test matrix is all zeroes ==> Train Only
-                               # If so, do not calc mse and avoid runtime error   
-                # calc test errors -- predicted vs actual 
+            if test.any() > 0:  # check if test matrix is all zeroes ==> Train Only
+                # If so, do not calc mse and avoid runtime error
+                # calc test errors -- predicted vs actual
                 self.test_mse += [self.get_mse(predictions, test)]
             else:
                 self.test_mse = ['n/a']
             if self._v:
-                print ('Train mse: ' + str(self.train_mse[-1]))
+                print('Train mse: ' + str(self.train_mse[-1]))
                 if self.test_mse != ['n/a']:
-                    print ('Test mse: ' + str(self.test_mse[-1]))
+                    print('Test mse: ' + str(self.test_mse[-1]))
             iter_diff = n_iter
-            
+
             stop_time = time()
-            elapsed_time = (stop_time-start_time) #/60
-            print ( 'Elapsed train/test time %.2f secs' % elapsed_time )     
+            elapsed_time = (stop_time-start_time)  # /60
+            print('Elapsed train/test time %.2f secs' % elapsed_time)
 
     def predict(self, u, i):
         """ Single user and item prediction """
-        
+
         if self.learning == 'als':
             return self.user_vecs[u, :].dot(self.item_vecs[i, :].T)
         elif self.learning == 'sgd':
-            prediction = self.global_bias + self.user_bias[u] + self.item_bias[i]
+            prediction = self.global_bias + \
+                self.user_bias[u] + self.item_bias[i]
             prediction += self.user_vecs[u, :].dot(self.item_vecs[i, :].T)
             return prediction
-    
+
     def predict_all(self):
         """ Predict ratings for every user and item """
-        
-        predictions = np.zeros((self.user_vecs.shape[0], 
+
+        predictions = np.zeros((self.user_vecs.shape[0],
                                 self.item_vecs.shape[0]))
         for u in range(self.user_vecs.shape[0]):
             for i in range(self.item_vecs.shape[0]):
                 predictions[u, i] = self.predict(u, i)
-        return predictions    
+        return predictions
 
     def get_mse(self, pred, actual):
         ''' Calc MSE between predicted and actual values '''
-        
+
         # Ignore nonzero terms.
         pred = pred[actual.nonzero()].flatten()
         actual = actual[actual.nonzero()].flatten()
@@ -2139,67 +2162,70 @@ def ratings_to_2D_matrix(ratings, m, n):
     print('Summary Stats:')
     print()
     print(ratings.describe())
-    ratingsMatrix = ratings.pivot_table(columns=['item_id'], index =['user_id'],
-        values='rating', dropna = False) # convert to a U-I matrix format from file input
-    ratingsMatrix = ratingsMatrix.fillna(0).values # replace nan's with zeroes
-    ratingsMatrix = ratingsMatrix[0:m,0:n] # get rid of any users/items that have no ratings
+    ratingsMatrix = ratings.pivot_table(columns=['item_id'], index=['user_id'],
+                                        values='rating', dropna=False)  # convert to a U-I matrix format from file input
+    ratingsMatrix = ratingsMatrix.fillna(0).values  # replace nan's with zeroes
+    # get rid of any users/items that have no ratings
+    ratingsMatrix = ratingsMatrix[0:m, 0:n]
     print()
-    print('2D_matrix shape', ratingsMatrix.shape) # debug
-    
+    print('2D_matrix shape', ratingsMatrix.shape)  # debug
+
     return ratingsMatrix
 
 
 def file_info(df):
     ''' print file info/stats  '''
     print()
-    print (df.head())
-    
+    print(df.head())
+
     n_users = df.user_id.unique().shape[0]
     n_items = df.item_id.unique().shape[0]
-    
+
     ratings = ratings_to_2D_matrix(df, n_users, n_items)
-    
+
     print()
-    print (ratings)
+    print(ratings)
     print()
-    print (str(n_users) + ' users')
-    print (str(n_items) + ' items')
-    
+    print(str(n_users) + ' users')
+    print(str(n_items) + ' items')
+
     sparsity = float(len(ratings.nonzero()[0]))
     sparsity /= (ratings.shape[0] * ratings.shape[1])
     sparsity *= 100
     sparsity = 100 - sparsity
-    print ('Sparsity: {:4.2f}%'.format(sparsity))
+    print('Sparsity: {:4.2f}%'.format(sparsity))
     return ratings
 
 
 def train_test_split(ratings, TRAIN_ONLY):
     ''' split the data into train and test '''
     test = np.zeros(ratings.shape)
-    train = deepcopy(ratings) # instead of copy()
-    
-    ## setting the size parameter for random.choice() based on dataset size
-    if len(ratings) < 10: # critics
+    train = deepcopy(ratings)  # instead of copy()
+
+    # setting the size parameter for random.choice() based on dataset size
+    if len(ratings) < 10:  # critics
         size = 1
-    elif len(ratings) < 1000: # ml-100k
+    elif len(ratings) < 1000:  # ml-100k
         size = 20
     else:
-        size = 40 # ml-1m
-        
-    #print('size =', size) ## debug
-    
+        size = 40  # ml-1m
+
+    # print('size =', size) ## debug
+
     if TRAIN_ONLY == False:
-        np.random.seed(0) # do not randomize the random.choice() in this function,
-                          # let ALS or SGD make the decision to randomize
-                          # Note: this decision can be reset with np.random.seed()
-                          # .. see code at the end of this for loop
-        for user in range(ratings.shape[0]): ## CES changed all xrange to range for Python v3
-            test_ratings = np.random.choice(ratings[user, :].nonzero()[0], 
-                                            size=size, 
-                                            replace=True) #False)
+        # do not randomize the random.choice() in this function,
+        np.random.seed(0)
+        # let ALS or SGD make the decision to randomize
+        # Note: this decision can be reset with np.random.seed()
+        # .. see code at the end of this for loop
+        # CES changed all xrange to range for Python v3
+        for user in range(ratings.shape[0]):
+            test_ratings = np.random.choice(ratings[user, :].nonzero()[0],
+                                            size=size,
+                                            replace=True)  # False)
             # When replace=False, size for ml-100k = 20, for critics = 1,2, or 3
             # Use replace=True for "better" results
-            
+
             '''
             np.random.choice() info ..
             https://numpy.org/doc/stable/reference/random/generated/numpy.random.choice.html
@@ -2229,91 +2255,95 @@ def train_test_split(ratings, TRAIN_ONLY):
             The generated random samples
             
             '''
-            
+
             train[user, test_ratings] = 0.
             test[user, test_ratings] = ratings[user, test_ratings]
-            
+
         # Test and training are truly disjoint
-        assert(np.all((train * test) == 0)) 
-        np.random.seed() # allow other functions to randomize
-    
-    #print('TRAIN_ONLY (in split) =', TRAIN_ONLY) ##debug
-    
+        assert(np.all((train * test) == 0))
+        np.random.seed()  # allow other functions to randomize
+
+    # print('TRAIN_ONLY (in split) =', TRAIN_ONLY) ##debug
+
     return train, test
-    
+
 
 def test_train_info(test, train):
     ''' print test/train info   '''
 
     print()
-    print ('Train info: %d rows, %d cols' % (len(train), len(train[0])))
-    print ('Test info: %d rows, %d cols' % (len(test), len(test[0])))
-    
+    print('Train info: %d rows, %d cols' % (len(train), len(train[0])))
+    print('Test info: %d rows, %d cols' % (len(test), len(test[0])))
+
     test_count = 0
     for i in range(len(test)):
         for j in range(len(test[0])):
-            if test[i][j] !=0:
+            if test[i][j] != 0:
                 test_count += 1
-                #print (i,j,test[i][j]) # debug
+                # print (i,j,test[i][j]) # debug
     print('test ratings count =', test_count)
-    
+
     train_count = 0
     for i in range(len(train)):
         for j in range(len(train[0])):
-            if train[i][j] !=0:
+            if train[i][j] != 0:
                 train_count += 1
-                #print (i,j,train[i][j]) # debug
-    
+                # print (i,j,train[i][j]) # debug
+
     total_count = test_count + train_count
     print('train ratings count =', train_count)
     print('test + train count', total_count)
-    print('test/train percentages: %0.2f / %0.2f' 
-          % ( (test_count/total_count)*100, (train_count/total_count)*100 ))
+    print('test/train percentages: %0.2f / %0.2f'
+          % ((test_count/total_count)*100, (train_count/total_count)*100))
     print()
 
 
 def plot_learning_curve(iter_array, model, parms, dataset):
     ''' plot the error curve '''
-    
-    ## Note: the iter_array can cause plots to NOT 
-    ##    be smooth! If matplotlib can't smooth, 
-    ##    then print/plot results every 
-    ##    max_num_iterations/10 (rounded up)
-    ##    instead of using an iter_array list
-    
-    #print('model.test_mse', model.test_mse) # debug
+
+    # Note: the iter_array can cause plots to NOT
+    # be smooth! If matplotlib can't smooth,
+    # then print/plot results every
+    # max_num_iterations/10 (rounded up)
+    # instead of using an iter_array list
+
+    # print('model.test_mse', model.test_mse) # debug
     if model.test_mse != ['n/a']:
         plt.plot(iter_array, model.test_mse, label='Test', linewidth=3)
     plt.plot(iter_array, model.train_mse, label='Train', linewidth=3)
 
-    plt.xticks(fontsize=10); # 16
+    plt.xticks(fontsize=10)  # 16
     plt.xticks(iter_array, iter_array)
-    plt.yticks(fontsize=10);
-    
+    plt.yticks(fontsize=10)
+
     axes = plt.gca()
-    axes.grid(True) # turns on grid
-    
+    axes.grid(True)  # turns on grid
+
     if model.learning == 'als':
         runtime_parms = \
-            'shape=%s, n_factors=%d, user_fact_reg=%.3f, item_fact_reg=%.3f'%\
-            (model.ratings.shape, model.n_factors, model.user_fact_reg, model.item_fact_reg)
-            #(train.shape, model.n_factors, model.user_fact_reg, model.item_fact_reg)
-        plt.title("ALS Model Evaluation\n%s" % runtime_parms , fontsize=10) 
+            'shape=%s, n_factors=%d, user_fact_reg=%.3f, item_fact_reg=%.3f' %\
+            (model.ratings.shape, model.n_factors,
+             model.user_fact_reg, model.item_fact_reg)
+        #(train.shape, model.n_factors, model.user_fact_reg, model.item_fact_reg)
+        plt.title("ALS Model Evaluation\n%s" % runtime_parms, fontsize=10)
     elif model.learning == 'sgd':
         runtime_parms = \
-            'shape=%s, num_factors K=%d, alpha=%.3f, beta=%.3f'%\
+            'shape=%s, num_factors K=%d, alpha=%.3f, beta=%.3f' %\
             (model.ratings.shape, model.n_factors, model.sgd_alpha, model.sgd_beta)
-            #(train.shape, model.n_factors, model.learning_rate, model.user_fact_reg)
-        plt.title("SGD Model Evaluation\n%s" % runtime_parms , fontsize=10)         
-    
-    plt.xlabel('Iterations', fontsize=15);
-    plt.ylabel('Mean Squared Error', fontsize=15);
-    plt.legend(loc='best', fontsize=15, shadow=True) # 'best', 'center right' 20
-    
+        #(train.shape, model.n_factors, model.learning_rate, model.user_fact_reg)
+        plt.title("SGD Model Evaluation\n%s" % runtime_parms, fontsize=10)
+
+    plt.xlabel('Iterations', fontsize=15)
+    plt.ylabel('Mean Squared Error', fontsize=15)
+    # 'best', 'center right' 20
+    plt.legend(loc='best', fontsize=15, shadow=True)
+
     if model.learning == 'als':
-        plt.savefig(f'results_als_{dataset}/ALS_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_plot.png')
+        plt.savefig(
+            f'results_als_{dataset}/ALS_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_plot.png')
     elif model.learning == 'sgd':
-        plt.savefig(f'results_sgd_{dataset}/SGD_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_{parms[3]}_plot.png')
+        plt.savefig(
+            f'results_sgd_{dataset}/SGD_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_{parms[3]}_plot.png')
     plt.close()
 
 
@@ -2370,14 +2400,16 @@ def main():
             genrefile = "critics_movies.genre"  # movie genre file
             dataset_name = "critics"
             print('Reading "%s" dictionary from file' % datafile)
-            prefs = from_file_to_dict(path, file_dir + datafile, file_dir + itemfile)
+            prefs = from_file_to_dict(
+                path, file_dir + datafile, file_dir + itemfile)
             print('Prefs')
             print(prefs)
             movies, genres, features = from_file_to_2D(
                 path, file_dir + genrefile, file_dir + itemfile
             )
             print(
-                "Number of users: %d\nList of users:" % len(prefs), list(prefs.keys())
+                "Number of users: %d\nList of users:" % len(
+                    prefs), list(prefs.keys())
             )
 
             ##
@@ -2396,18 +2428,20 @@ def main():
             hybrid_ran = False
 
         elif file_io == 'PD-R' or file_io == 'pd-r':
-            
+
             # Load user-item matrix from file
             dataset = 'critics'
-            ## Read in data: critics
-            data_folder = '/data/' # for critics
-            #print('\npath: %s\n' % path_name + data_folder) # debug: print path info
-            names = ['user_id', 'item_id', 'rating', 'timestamp'] # column headings
-            
-            #Create pandas dataframe
-            df = pd.read_csv(path_name + data_folder + 'critics_ratings_userIDs.data', sep='\t', names=names) # for critics
+            # Read in data: critics
+            data_folder = '/data/'  # for critics
+            # print('\npath: %s\n' % path_name + data_folder) # debug: print path info
+            names = ['user_id', 'item_id', 'rating',
+                     'timestamp']  # column headings
+
+            # Create pandas dataframe
+            df = pd.read_csv(path + data_folder + 'critics_ratings_userIDs.data',
+                             sep='\t', names=names)  # for critics
             ratings = file_info(df)
-            
+
             # set test/train in case they were set by a previous file I/O command
             test_train_done = False
             print()
@@ -2422,7 +2456,8 @@ def main():
             genrefile = "u.genre"  # movie genre file
             dataset_name = "ml-100k"
             print('Reading "%s" dictionary from file' % datafile)
-            prefs = from_file_to_dict(path, file_dir + datafile, file_dir + itemfile)
+            prefs = from_file_to_dict(
+                path, file_dir + datafile, file_dir + itemfile)
             movies, genres, features = from_file_to_2D(
                 path, file_dir + genrefile, file_dir + itemfile
             )
@@ -2447,23 +2482,25 @@ def main():
             hybrid_ran = False
 
         elif file_io == 'PD-RML' or file_io == 'pd-rml':
-                    
+
             dataset = 'ml-100k'
             # Load user-item matrix from file
-            ## Read in data: ml-100k
-            data_folder = '/data/ml-100k/' # for ml-100k                   
-            #print('\npath: %s\n' % path_name + data_folder) # debug: print path info
-            names = ['user_id', 'item_id', 'rating', 'timestamp'] # column headings
-    
-            #Create pandas dataframe
-            df = pd.read_csv(path_name + data_folder + 'u.data', sep='\t', names=names) # for ml-100k
+            # Read in data: ml-100k
+            data_folder = '/data/ml-100k/'  # for ml-100k
+            # print('\npath: %s\n' % path_name + data_folder) # debug: print path info
+            names = ['user_id', 'item_id', 'rating',
+                     'timestamp']  # column headings
+
+            # Create pandas dataframe
+            df = pd.read_csv(path + data_folder + 'u.data',
+                             sep='\t', names=names)  # for ml-100k
             ratings = file_info(df)
-            
+
             test_train_done = False
             print()
             print('Test and Train arrays are empty!')
             print()
-       
+
         elif file_io == "P" or file_io == "p":
             # print the u-i matrix
             print()
@@ -2516,7 +2553,8 @@ def main():
             if len(prefs) > 0 and len(prefs) < 10:
                 print("Examples:")
                 print(
-                    "Distance sim Lisa & Gene:", sim_distance(prefs, "Lisa", "Gene")
+                    "Distance sim Lisa & Gene:", sim_distance(
+                        prefs, "Lisa", "Gene")
                 )  # 0.29429805508554946
                 num = 1
                 den = 1 + sqrt(
@@ -2548,7 +2586,8 @@ def main():
                     for user2_index in range(len(users)):
 
                         sim_dist_value = round(
-                            sim_distance(prefs, users[user1_index], users[user2_index]),
+                            sim_distance(
+                                prefs, users[user1_index], users[user2_index]),
                             3,
                         )
                         row.append(sim_dist_value)
@@ -2611,9 +2650,11 @@ def main():
             if len(prefs) > 0 and len(prefs) < 10:
                 print("Example:")
                 print(
-                    "Pearson sim Lisa & Gene:", sim_pearson(prefs, "Lisa", "Gene")
+                    "Pearson sim Lisa & Gene:", sim_pearson(
+                        prefs, "Lisa", "Gene")
                 )  # 0.39605901719066977
-                print("Pearson sim Mick & Gene:", sim_pearson(prefs, "Mick", "Gene"))
+                print("Pearson sim Mick & Gene:",
+                      sim_pearson(prefs, "Mick", "Gene"))
                 print()
 
                 print("Pearson for all users:")
@@ -2627,7 +2668,8 @@ def main():
                     for user2_index in range(len(users)):
 
                         sim_pearson_value = round(
-                            sim_pearson(prefs, users[user1_index], users[user2_index]),
+                            sim_pearson(
+                                prefs, users[user1_index], users[user2_index]),
                             3,
                         )
                         row.append(sim_pearson_value)
@@ -2644,7 +2686,8 @@ def main():
                     row_str = str(users[row]) + "\t"
                     for col in range(len(uu_sim_pearson_matrix[row])):
                         if row != col:
-                            row_str += str(uu_sim_pearson_matrix[row][col]) + "\t"
+                            row_str += str(
+                                uu_sim_pearson_matrix[row][col]) + "\t"
                         else:
                             row_str += "X\t"
 
@@ -2663,12 +2706,14 @@ def main():
                 user_name = "Toby"
                 print(
                     "User-based CF recs for %s, sim_pearson: " % (user_name),
-                    getRecommendations(prefs, user_name, similarity=sim_pearson),
+                    getRecommendations(
+                        prefs, user_name, similarity=sim_pearson),
                 )
 
                 print(
                     "User-based CF recs for %s, sim_distance: " % (user_name),
-                    getRecommendations(prefs, user_name, similarity=sim_distance),
+                    getRecommendations(
+                        prefs, user_name, similarity=sim_distance),
                 )
 
                 print()
@@ -2714,8 +2759,10 @@ def main():
                     "WK(rite) kendall tau? ==> "
                 )
 
-                n_neighbors = int(input("Number of neighbors: "))
-                sim_sig_weighting = int(input("Significance weighting cutoff: "))
+                if 'w' in sub_cmd.lower():
+                    n_neighbors = int(input("Number of neighbors: "))
+                    sim_sig_weighting = int(
+                        input("Significance weighting cutoff: "))
 
                 try:
                     if sub_cmd == "RD" or sub_cmd == "rd":
@@ -2749,7 +2796,8 @@ def main():
                     elif sub_cmd == "RP" or sub_cmd == "rp":
                         # Load the dictionary back from the pickle file.
                         itemsim = pickle.load(
-                            open(f"sim_mat/save_itemsim_pearson_{dataset_name}.p", "rb")
+                            open(
+                                f"sim_mat/save_itemsim_pearson_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_pearson"
                         sim_ran = True
@@ -2803,7 +2851,8 @@ def main():
                     elif sub_cmd == "RJ" or sub_cmd == "rj":
                         # Load the dictionary back from the pickle file.
                         itemsim = pickle.load(
-                            open(f"sim_mat/save_itemsim_jaccard_{dataset_name}.p", "rb")
+                            open(
+                                f"sim_mat/save_itemsim_jaccard_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_jaccard"
                         sim_ran = True
@@ -2829,7 +2878,8 @@ def main():
                     elif sub_cmd == "RC" or sub_cmd == "rc":
                         # Load the dictionary back from the pickle file.
                         itemsim = pickle.load(
-                            open(f"sim_mat/save_itemsim_cosine_{dataset_name}.p", "rb")
+                            open(
+                                f"sim_mat/save_itemsim_cosine_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_cosine"
                         sim_ran = True
@@ -2845,7 +2895,8 @@ def main():
                         # Dump/save dictionary to a pickle file
                         pickle.dump(
                             itemsim,
-                            open(f"sim_mat/save_itemsim_cosine_{dataset_name}.p", "wb"),
+                            open(
+                                f"sim_mat/save_itemsim_cosine_{dataset_name}.p", "wb"),
                         )
                         sim_method = "sim_cosine"
                         sim_ran = True
@@ -2967,9 +3018,11 @@ def main():
                     "WK(rite) kendall tau? ==> "
                 )
 
-                n_neighbors = int(input("Number of neighbors: "))
-                sim_sig_weighting = int(input("Similarity significance weighting: "))
-                
+                if 'w' in sub_cmd.lower():
+                    n_neighbors = int(input("Number of neighbors: "))
+                    sim_sig_weighting = int(
+                        input("Significance weighting cutoff: "))
+
                 try:
                     if sub_cmd == "RD" or sub_cmd == "rd":
                         # Load the dictionary back from the pickle file.
@@ -3000,7 +3053,8 @@ def main():
                     elif sub_cmd == "RP" or sub_cmd == "rp":
                         # Load the dictionary back from the pickle file.
                         usersim = pickle.load(
-                            open(f"sim_mat/save_usersim_pearson_{dataset_name}.p", "rb")
+                            open(
+                                f"sim_mat/save_usersim_pearson_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_pearson"
 
@@ -3050,7 +3104,8 @@ def main():
                     elif sub_cmd == "RJ" or sub_cmd == "rj":
                         # Load the dictionary back from the pickle file.
                         usersim = pickle.load(
-                            open(f"sim_mat/save_usersim_jaccard_{dataset_name}.p", "rb")
+                            open(
+                                f"sim_mat/save_usersim_jaccard_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_jaccard"
 
@@ -3074,7 +3129,8 @@ def main():
                     elif sub_cmd == "RC" or sub_cmd == "rc":
                         # Load the dictionary back from the pickle file.
                         usersim = pickle.load(
-                            open(f"sim_mat/save_usersim_cosine_{dataset_name}.p", "rb")
+                            open(
+                                f"sim_mat/save_usersim_cosine_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_cosine"
 
@@ -3089,7 +3145,8 @@ def main():
                         # Dump/save dictionary to a pickle file
                         pickle.dump(
                             usersim,
-                            open(f"sim_mat/save_usersim_cosine_{dataset_name}.p", "wb"),
+                            open(
+                                f"sim_mat/save_usersim_cosine_{dataset_name}.p", "wb"),
                         )
                         sim_method = "sim_cosine"
 
@@ -3182,193 +3239,237 @@ def main():
 
             else:
                 print("Empty dictionary, R(ead) in some data!")
-       
+
         elif file_io == 'T' or file_io == 't':
-            if len(ratings) > 0:
-                answer = input('Generate both test and train data? Y or y, N or n: ')
-                if answer == 'N' or answer == 'n':
-                    TRAIN_ONLY = True
+            try:
+                if len(ratings) > 0:
+                    answer = input(
+                        'Generate both test and train data? Y or y, N or n: ')
+                    if answer == 'N' or answer == 'n':
+                        TRAIN_ONLY = True
+                    else:
+                        TRAIN_ONLY = False
+
+                    # print('TRAIN_ONLY  in EVAL =', TRAIN_ONLY) ## debug
+                    train, test = train_test_split(
+                        ratings, TRAIN_ONLY)  # this should
+                    # be only place where TRAIN_ONLY is needed!!
+                    # Check for len(test)==0 elsewhere
+
+                    test_train_info(test, train)  # print test/train info
+
+                    # How is MSE calculated for train?? self.ratings is the train
+                    # data when ExplicitMF is instantiated for both als and sgd.
+                    # So, MSE calc is between predictions based on train data
+                    # against the actuals for train data
+                    # How is MSE calculated for test?? It's comparing the predictions
+                    # based on train data against the actuals for test data
+
+                    test_train_done = True
+                    print()
+                    print('Test and Train arrays are ready!')
+                    print()
                 else:
-                    TRAIN_ONLY = False
-                
-                #print('TRAIN_ONLY  in EVAL =', TRAIN_ONLY) ## debug
-                train, test = train_test_split(ratings, TRAIN_ONLY) ## this should 
-                ##     be only place where TRAIN_ONLY is needed!! 
-                ##     Check for len(test)==0 elsewhere
-                
-                test_train_info(test, train) ## print test/train info
-        
-                ## How is MSE calculated for train?? self.ratings is the train
-                ##    data when ExplicitMF is instantiated for both als and sgd.
-                ##    So, MSE calc is between predictions based on train data 
-                ##    against the actuals for train data
-                ## How is MSE calculated for test?? It's comparing the predictions
-                ##    based on train data against the actuals for test data
-                
-                test_train_done = True
-                print()
-                print('Test and Train arrays are ready!')
-                print()
-            else:
-                print ('Empty U-I matrix, read in some data!')
-                print() 
+                    print('Empty U-I matrix, read in some data!')
+                    print()
+            except:
+                print('Must run PD-R or PD-RML first!')
 
         elif file_io == 'MF-ALS' or file_io == 'mf-als':
-            
-            if len(ratings) > 0:
-                if test_train_done:
-                    
-                    ## als processing
-                    
+            try:
+                if len(ratings) > 0:
+                    if test_train_done:
+
+                        # als processing
+
+                        print()
+                        # sample instantiations ..
+                        if len(ratings) < 10:  # for critics
+                            print('Sample for critics .. ')
+                            iter_array = [1, 2, 5, 10, 20]
+                            parms = [2, 1, 20]
+                            MF_ALS = ExplicitMF(train, learning='als', n_factors=2, user_fact_reg=1,
+                                                item_fact_reg=1, max_iters=max(iter_array), verbose=True)
+                            print('[2,1,20]')
+
+                        elif len(ratings) < 1000:  # for ml-100k
+                            print('Sample for ml-100k .. ')
+                            # , 100] #, 200]
+                            iter_array = [1, 2, 5, 10, 20, 50]
+                            parms = [20, 0.01, 50]
+                            MF_ALS = ExplicitMF(train, learning='als', n_factors=20, user_fact_reg=.01,
+                                                item_fact_reg=.01, max_iters=max(iter_array), verbose=True)
+                            print('[20,0.01,50]')
+
+                        elif len(ratings) < 10000:  # for ml-1m
+                            print('Sample for ml-1M .. ')
+                            iter_array = [1, 2, 5, 10]
+                            parms = [20, 0.1, 10]
+                            MF_ALS = ExplicitMF(train, learning='als', n_factors=20, user_fact_reg=.1,
+                                                item_fact_reg=.1, max_iters=max(iter_array), verbose=True)
+                            print('[20,0.1,10]')
+
+                        # [2,0.01,10,False]
+                        p = input(
+                            'Y or y to use these parameters or Enter to modify: ')
+                        if p == 'Y' or p == 'y':
+                            pass
+                        else:
+                            parms = eval(
+                                input('Enter new parameters as a list: [n_factors, reg, iters]: '))
+
+                            # instantiate with this set of parms
+                            MF_ALS = ExplicitMF(train, learning='als',
+                                                n_factors=parms[0],
+                                                user_fact_reg=parms[1],
+                                                item_fact_reg=parms[1])
+
+                            # set up the iter_array for this run to pass on
+                            orig_iter_array = [1, 2, 5, 10, 20, 50, 100, 200]
+                            i_max = parms[2]
+                            index = orig_iter_array.index(i_max)
+                            iter_array = []
+                            for i in range(0, index+1):
+                                iter_array.append(orig_iter_array[i])
+
+                        # run the algo and plot results
+                        MF_ALS.calculate_learning_curve(iter_array, test)
+                        plot_learning_curve(iter_array, MF_ALS, parms, dataset)
+                        print(parms[0])
+                        np.save(
+                            f'results_als_{dataset}/ALS_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_train.npy', MF_ALS.train_mse)
+                        np.save(
+                            f'results_als_{dataset}/ALS_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_test.npy', MF_ALS.test_mse)
+
+                        with open(f"results_als_{dataset}/ALS_{dataset}_train_mse_grid_search_results.csv", "a", newline="") as f:
+                            writer = csv.writer(f)
+                            writer.writerow(
+                                [f'ALS~{parms[0]}~{parms[1]}'] + MF_ALS.train_mse)
+
+                        with open(f"results_als_{dataset}/ALS_{dataset}_test_mse_grid_search_results.csv", "a", newline="") as f:
+                            writer = csv.writer(f)
+                            writer.writerow(
+                                [f'ALS~{parms[0]}~{parms[1]}'] + MF_ALS.test_mse)
+
+                    else:
+                        print('Empty test/train arrays, run the T command!')
+                        print()
+                else:
+                    print('Empty U-I matrix, read in some data!')
                     print()
-                    ## sample instantiations ..
-                    if len(ratings) < 10: ## for critics
-                        print('Sample for critics .. ')
-                        iter_array = [1, 2, 5, 10, 20]
-                        MF_ALS = ExplicitMF(train, learning='als', n_factors=2, user_fact_reg=1, item_fact_reg=1, max_iters=max(iter_array), verbose=True)
-                        print('[2,1,20]')
-                    
-                    elif len(ratings) < 1000: ## for ml-100k
-                        print('Sample for ml-100k .. ')
-                        iter_array = [1, 2, 5 , 10, 20, 50] #, 100] #, 200]
-                        MF_ALS = ExplicitMF(train, learning='als', n_factors=20, user_fact_reg=.01, item_fact_reg=.01, max_iters=max(iter_array), verbose=True) 
-                        print('[20,0.01,50]')
-                    
-                    elif len(ratings) < 10000: ## for ml-1m
-                        print('Sample for ml-1M .. ')
-                        iter_array = [1, 2, 5, 10] 
-                        MF_ALS = ExplicitMF(train, learning='als', n_factors=20, user_fact_reg=.1, item_fact_reg=.1, max_iters=max(iter_array), verbose=True) 
-                        
-                    parms = input('Y or y to use these parameters or Enter to modify: ')# [2,0.01,10,False]
-                    if parms == 'Y' or parms == 'y':
-                        pass
-                    else:
-                        parms = eval(input('Enter new parameters as a list: [n_factors, reg, iters]: '))
-                        
-                        # instantiate with this set of parms
-                        MF_ALS = ExplicitMF(train,learning='als', 
-                                            n_factors=parms[0], 
-                                            user_fact_reg=parms[1], 
-                                            item_fact_reg=parms[1])
-                       
-                        # set up the iter_array for this run to pass on
-                        orig_iter_array = [1, 2, 5, 10, 20, 50, 100, 200]
-                        i_max = parms[2]
-                        index = orig_iter_array.index(i_max)
-                        iter_array = []
-                        for i in range(0, index+1):
-                            iter_array.append(orig_iter_array[i])
-                            
-                    # run the algo and plot results
-                    MF_ALS.calculate_learning_curve(iter_array, test) 
-                    plot_learning_curve(iter_array, MF_ALS, parms, dataset)
-                    print(parms[0])
-                    np.save(f'results_als_{dataset}/ALS_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_train.npy', MF_ALS.train_mse)
-                    np.save(f'results_als_{dataset}/ALS_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_test.npy', MF_ALS.test_mse)
-                    
-                    with open(f"results_als_{dataset}/ALS_{dataset}_train_mse_grid_search_results.csv", "a", newline="") as f:
-                        writer = csv.writer(f)
-                        writer.writerow([f'ALS~{parms[0]}~{parms[1]}'] + MF_ALS.train_mse)
+            except:
+                print('Must run PD-R or PD-RML first!')
 
-                    with open(f"results_als_{dataset}/ALS_{dataset}_test_mse_grid_search_results.csv", "a", newline="") as f:
-                        writer = csv.writer(f)
-                        writer.writerow([f'ALS~{parms[0]}~{parms[1]}'] + MF_ALS.test_mse)
-
-                else:
-                    print ('Empty test/train arrays, run the T command!')
-                    print()                    
-            else:
-                print ('Empty U-I matrix, read in some data!')
-                print()
-                    
         elif file_io == 'MF-SGD' or file_io == 'mf-sgd':
-            
-            if len(ratings) > 0:
-                
-                if test_train_done:
-                
-                    ## sgd processing
-                     
-                    ## sample instantiations ..
-                    if len(ratings) < 10: ## for critics
-                        # Use these parameters for small matrices
-                        print('Sample for critics .. ')
-                        iter_array = [1, 2, 5, 10, 20]                     
-                        MF_SGD = ExplicitMF(train, 
-                                            n_factors=2, 
-                                            learning='sgd', 
-                                            sgd_alpha=0.075,
-                                            sgd_beta=0.01, 
-                                            max_iters=max(iter_array), 
-                                            sgd_random=False)
+            try:
+                if len(ratings) > 0:
 
-                    elif len(ratings) < 1000:
-                       # Use these parameters for ml-100k
-                        print('Sample for ml-100k .. ')
-                        iter_array = [1, 2, 5, 10, 20]                     
-                        MF_SGD = ExplicitMF(train, 
-                                            n_factors=2, 
-                                            learning='sgd', 
-                                            sgd_alpha=0.02,
-                                            sgd_beta=0.2, 
-                                            max_iters=max(iter_array), 
-                                            sgd_random=False, verbose=True)
-                        
+                    if test_train_done:
 
-                         
-                    elif len(ratings) < 10000:
-                       # Use these parameters for ml-1m
-                        print('Sample for ml-1m .. ')
-                        iter_array = [1, 2, 5, 10] #, 20, 50, 100]                     
-                        MF_SGD = ExplicitMF(train, 
-                                            n_factors=20, 
-                                            learning='sgd', 
-                                            sgd_alpha=0.1,
-                                            sgd_beta=0.1, 
-                                            max_iters=max(iter_array), 
-                                            sgd_random=False, verbose=True)
-                        
-                    parms = input('Y or y to use these parameters or Enter to modify: ')# [2,0.01,10,False]
-                    if parms == 'Y' or parms == 'y':
-                        pass
+                        # sgd processing
+
+                        # sample instantiations ..
+                        if len(ratings) < 10:  # for critics
+                            # Use these parameters for small matrices
+                            print('Sample for critics .. ')
+                            iter_array = [1, 2, 5, 10, 20]
+                            parms = [2, 0.075, 0.01, 20]
+                            MF_SGD = ExplicitMF(train,
+                                                n_factors=2,
+                                                learning='sgd',
+                                                sgd_alpha=0.075,
+                                                sgd_beta=0.01,
+                                                max_iters=max(iter_array),
+                                                sgd_random=False)
+
+                            print('[2, 0.075, 0.01, 20]')
+
+                        elif len(ratings) < 1000:
+                            # Use these parameters for ml-100k
+                            print('Sample for ml-100k .. ')
+                            iter_array = [1, 2, 5, 10, 20]
+                            parms = [2, 0.02, 0.2, 20]
+                            MF_SGD = ExplicitMF(train,
+                                                n_factors=2,
+                                                learning='sgd',
+                                                sgd_alpha=0.02,
+                                                sgd_beta=0.2,
+                                                max_iters=max(iter_array),
+                                                sgd_random=False, verbose=True)
+
+                            print('[2, 0.02, 0.2, 20]')
+
+                        elif len(ratings) < 10000:
+                            # Use these parameters for ml-1m
+                            print('Sample for ml-1m .. ')
+                            iter_array = [1, 2, 5, 10]  # , 20, 50, 100]
+                            parms = [20, 0.1, 0.1, 10]
+                            MF_SGD = ExplicitMF(train,
+                                                n_factors=20,
+                                                learning='sgd',
+                                                sgd_alpha=0.1,
+                                                sgd_beta=0.1,
+                                                max_iters=max(iter_array),
+                                                sgd_random=False, verbose=True)
+
+                            print('[20, 0.1, 0.1, 10]')
+
+                        # [2,0.01,10,False]
+                        p = input(
+                            'Y or y to use these parameters or Enter to modify: ')
+                        if p == 'Y' or p == 'y':
+                            pass
+                        else:
+                            # ', random]: '))
+                            parms = eval(input(
+                                'Enter new parameters as a list: [n_factors K, learning_rate alpha, reg beta, max_iters: '))
+                            MF_SGD = ExplicitMF(train, n_factors=parms[0],
+                                                learning='sgd',
+                                                sgd_alpha=parms[1],
+                                                sgd_beta=parms[2],
+                                                max_iters=parms[3],
+                                                sgd_random=False, verbose=True)
+
+                            orig_iter_array = [1, 2, 5, 10, 20, 50, 100, 200]
+                            i_max = parms[3]
+                            index = orig_iter_array.index(i_max)
+                            iter_array = []
+                            for i in range(0, index+1):
+                                iter_array.append(orig_iter_array[i])
+
+                        MF_SGD.calculate_learning_curve(
+                            iter_array, test)  # start the training
+                        plot_learning_curve(iter_array, MF_SGD, parms, dataset)
+
+                        np.save(
+                            f'results_sgd_{dataset}/SGD_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_{parms[3]}_train.npy', MF_SGD.train_mse)
+                        np.save(
+                            f'results_sgd_{dataset}/SGD_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_{parms[3]}_test.npy', MF_SGD.test_mse)
+                        with open(f"results_sgd_{dataset}/SGD_{dataset}_train_mse_grid_search_results.csv", "a", newline="") as f:
+                            writer = csv.writer(f)
+                            writer.writerow(
+                                [f'SGD~{parms[0]}~{parms[1]}~{parms[2]}'] + MF_SGD.train_mse)
+
+                        with open(f"results_sgd_{dataset}/SGD_{dataset}_test_mse_grid_search_results.csv", "a", newline="") as f:
+                            writer = csv.writer(f)
+                            writer.writerow(
+                                [f'SGD~{parms[0]}~{parms[1]}~{parms[2]}'] + MF_SGD.test_mse)
+
                     else:
-                        parms = eval(input('Enter new parameters as a list: [n_factors K, learning_rate alpha, reg beta, max_iters: ')) #', random]: '))
-                        MF_SGD = ExplicitMF(train, n_factors=parms[0], 
-                                            learning='sgd', 
-                                            sgd_alpha=parms[1], 
-                                            sgd_beta=parms[2], 
-                                            max_iters=parms[3], 
-                                            sgd_random=False, verbose=True)  
-
-                        orig_iter_array = [1, 2, 5, 10, 20, 50, 100, 200]
-                        i_max = parms[3]
-                        index = orig_iter_array.index(i_max)
-                        iter_array = []
-                        for i in range(0, index+1):
-                            iter_array.append(orig_iter_array[i])
-                         
-                    MF_SGD.calculate_learning_curve(iter_array, test) # start the training
-                    plot_learning_curve(iter_array, MF_SGD, parms, dataset)    
-
-                    np.save(f'results_sgd_{dataset}/SGD_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_{parms[3]}_train.npy', MF_SGD.train_mse)
-                    np.save(f'results_sgd_{dataset}/SGD_{dataset}_{parms[0]}_{parms[1]}_{parms[2]}_{parms[3]}_test.npy', MF_SGD.test_mse)
-                    with open(f"results_sgd_{dataset}/SGD_{dataset}_train_mse_grid_search_results.csv", "a", newline="") as f:
-                        writer = csv.writer(f)
-                        writer.writerow([f'SGD~{parms[0]}~{parms[1]}~{parms[2]}'] + MF_SGD.train_mse)
-
-                    with open(f"results_sgd_{dataset}/SGD_{dataset}_test_mse_grid_search_results.csv", "a", newline="") as f:
-                        writer = csv.writer(f)
-                        writer.writerow([f'SGD~{parms[0]}~{parms[1]}~{parms[2]}'] + MF_SGD.test_mse)
-
+                        print('Empty test/train arrays, run the T command!')
+                        print()
                 else:
-                    print ('Empty test/train arrays, run the T command!')
-                    print()   
+                    print('Empty U-I matrix, read in some data!')
+                    print()
+
+            except:
+                print('Must run PD-R or PD-RML first!')
 
         elif file_io == 'MF-SGD-GRID' or file_io == 'mf-sgd-grid':
 
-            k_list = [2,20,200]
-            alpha_list = [0.02,0.002,0.0002]
-            beta_list = [0.2,0.02,0.002]
+            k_list = [2, 20, 200]
+            alpha_list = [0.02, 0.002, 0.0002]
+            beta_list = [0.2, 0.02, 0.002]
             iters = 20
 
             train_mse_list = []
@@ -3377,12 +3478,12 @@ def main():
                 for alpha in alpha_list:
                     for beta in beta_list:
                         parms = [k, alpha, beta, iters]
-                        MF_SGD = ExplicitMF(train, n_factors=k, 
-                                                    learning='sgd', 
-                                                    sgd_alpha=alpha, 
-                                                    sgd_beta=beta, 
-                                                    max_iters=iters, 
-                                                    sgd_random=False, verbose=True)  
+                        MF_SGD = ExplicitMF(train, n_factors=k,
+                                            learning='sgd',
+                                            sgd_alpha=alpha,
+                                            sgd_beta=beta,
+                                            max_iters=iters,
+                                            sgd_random=False, verbose=True)
 
                         orig_iter_array = [1, 2, 5, 10, 20, 50, 100, 200]
                         i_max = iters
@@ -3390,14 +3491,17 @@ def main():
                         iter_array = []
                         for i in range(0, index+1):
                             iter_array.append(orig_iter_array[i])
-                                
-                        MF_SGD.calculate_learning_curve(iter_array, test) # start the training
-                        plot_learning_curve(iter_array, MF_SGD, parms, dataset)    
+
+                        MF_SGD.calculate_learning_curve(
+                            iter_array, test)  # start the training
+                        plot_learning_curve(iter_array, MF_SGD, parms, dataset)
 
                         print([f'SGD~{k}~{alpha}~{beta}'] + MF_SGD.train_mse)
-                        train_mse_list.append([f'SGD~{k}~{alpha}~{beta}'] + MF_SGD.train_mse)
+                        train_mse_list.append(
+                            [f'SGD~{k}~{alpha}~{beta}'] + MF_SGD.train_mse)
                         print([f'SGD~{k}~{alpha}~{beta}'] + MF_SGD.test_mse)
-                        test_mse_list.append([f'SGD~{k}~{alpha}~{beta}'] + MF_SGD.test_mse)
+                        test_mse_list.append(
+                            [f'SGD~{k}~{alpha}~{beta}'] + MF_SGD.test_mse)
                         print()
 
             with open(f"results_sgd_{dataset}/SGD_{dataset}_train_mse_grid_search_results.csv", "w", newline="") as f:
@@ -3407,24 +3511,24 @@ def main():
             with open(f"results_sgd_{dataset}/SGD_{dataset}_test_mse_grid_search_results.csv", "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerows(test_mse_list)
-        
+
         elif file_io == 'MF-ALS-GRID' or file_io == 'mf-als-grid':
 
-            f_list = [2,20,100,200]
-            regLambda_list = [1,0.1,0.01,0.001,0.0001,0.00001]         
-            iters = 20  
+            f_list = [2, 20, 100, 200]
+            regLambda_list = [1, 0.1, 0.01, 0.001, 0.0001, 0.00001]
+            iters = 20
 
             train_mse_list = []
             test_mse_list = []
             for f in f_list:
                 for regLambda in regLambda_list:
-                    parms = [f,regLambda,iters]
+                    parms = [f, regLambda, iters]
                     # instantiate with this set of parms
-                    MF_ALS = ExplicitMF(train,learning='als', 
-                                        n_factors=f, 
-                                        user_fact_reg=regLambda, 
+                    MF_ALS = ExplicitMF(train, learning='als',
+                                        n_factors=f,
+                                        user_fact_reg=regLambda,
                                         item_fact_reg=regLambda)
-                    
+
                     # set up the iter_array for this run to pass on
                     orig_iter_array = [1, 2, 5, 10, 20, 50, 100, 200]
                     i_max = iters
@@ -3432,18 +3536,20 @@ def main():
                     iter_array = []
                     for i in range(0, index+1):
                         iter_array.append(orig_iter_array[i])
-                                
-                    MF_ALS.calculate_learning_curve(iter_array, test) 
+
+                    MF_ALS.calculate_learning_curve(iter_array, test)
                     plot_learning_curve(iter_array, MF_ALS, parms, dataset)
                     print([f'ALS~{f}~{regLambda}'] + MF_ALS.train_mse)
-                    train_mse_list.append([f'ALS~{f}~{regLambda}'] + MF_ALS.train_mse)
+                    train_mse_list.append(
+                        [f'ALS~{f}~{regLambda}'] + MF_ALS.train_mse)
                     print([f'ALS~{f}~{regLambda}'] + MF_ALS.test_mse)
-                    test_mse_list.append([f'ALS~{f}~{regLambda}'] + MF_ALS.test_mse)
-            
+                    test_mse_list.append(
+                        [f'ALS~{f}~{regLambda}'] + MF_ALS.test_mse)
+
             with open(f"results_als_{dataset}/ALS_{dataset}_train_mse_grid_search_results.csv", "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerows(train_mse_list)
-            
+
             with open(f"results_als_{dataset}/ALS_{dataset}_test_mse_grid_search_results.csv", "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerows(test_mse_list)
@@ -3451,20 +3557,21 @@ def main():
         elif file_io == "I" or file_io == "i":
             print()
             if len(prefs) > 0 and len(itemsim) > 0:
-                print("Example:")
-                user_name = "Toby"
+                # print("Example:")
+                user_name = input('Enter a user id: ')
+                threshold = float(input("Similarity threshold: "))
 
                 print(
-                    "Item-based CF recs for %s, %s: " % (user_name, sim_method),
-                    getRecommendedItems(prefs, itemsim, user_name, threshold, sim_sig_weighting),
-                )
+                    "Item-based CF recs for %s, %s: " % (
+                        user_name, sim_method),
+                    getRecommendedItems(prefs, itemsim, user_name, threshold))
 
                 print()
 
-                print("Item-based CF recommendations for all users:")
-                # Calc Item-based CF recommendations for all users
+                # print("Item-based CF recommendations for all users:")
+                # # Calc Item-based CF recommendations for all users
 
-                get_all_II_recs(prefs, itemsim, sim_method)
+                # get_all_II_recs(prefs, itemsim, sim_method, threshold)
 
                 print()
 
@@ -3493,20 +3600,22 @@ def main():
 
                     if input_algo.lower() == "uu-cf":
                         threshold = float(input("Similarity threshold: "))
-                        sim_sig_weighting = float(input('Similarity significance weighting: '))
+                        sim_sig_weighting = float(
+                            input('Similarity significance weighting: '))
                         algo = new_getRecommendedUsers
                         sim_matrix = usersim
                         mov = None
                     elif input_algo.lower() == "ii-cf":
                         threshold = float(input("Similarity threshold: "))
-                        sim_sig_weighting = float(input('Similarity significance weighting: '))
+                        sim_sig_weighting = float(
+                            input('Similarity significance weighting: '))
                         algo = new_getRecommendedItems  # Item-based recommendation
                         sim_matrix = itemsim
                         mov = None
                     elif input_algo.lower() == "tfidf":
                         threshold = float(input("Similarity threshold: "))
-                        sim_sig_weighting = 0 # TFIDF doesn't use a sim sig weighting
-                        n_neighbors = 0 # TFIDF doesn't use n_neighbors
+                        sim_sig_weighting = 0  # TFIDF doesn't use a sim sig weighting
+                        n_neighbors = 0  # TFIDF doesn't use n_neighbors
                         algo = new_get_TFIDF_recommendations
                         sim_matrix = cosim_matrix
                         sim = 'TFIDF'
@@ -3546,7 +3655,7 @@ def main():
                             mov,
                             weighting_factor
                         )
-                        
+
                     else:
                         print(
                             'Invalid recommendation algo. Please say "user" or "item".'
@@ -3695,12 +3804,15 @@ def main():
                 print(str(tb))
 
         elif file_io == "REC" or file_io == "rec":
-            algo_input = str(input("Enter algo - user (u) or item (i): ")).lower()
+            algo_input = str(
+                input("Enter algo - user (u) or item (i): ")).lower()
             sim_input = str(
                 input("Enter similarity calculation - distance (d) or pearson (p): ")
             ).lower()
+            threshold = float(input("Similarity threshold: "))
             user = str(input("Enter User name/identifier: "))
             num_recs = int(input("Enter number of recommendations: "))
+
             try:
                 if algo_input == "u":
                     algo = getRecommendedUsers
@@ -3716,7 +3828,7 @@ def main():
             else:
                 sim = sim_pearson
 
-            recs = algo(prefs, matrix, user, 1)
+            recs = algo(prefs, matrix, user, threshold)
 
             print(f"CF recs using {algo} for {user}: {recs[:num_recs]}")
 
@@ -3799,7 +3911,7 @@ def main():
                 print("std of cosim matrix")
                 print(cosim_matrix_std)
                 print()
-                
+
                 sim = 'TFIDF'
                 sim_method = 'TFIDF'
                 tfidf_ran = True
@@ -3825,16 +3937,18 @@ def main():
             print()
 
             print("critics")
-            algo = input("Enter UU-CF, II-CF, MF-SGD, MF-ALS, NCF, TFIDF, Hybrid: ")
+            algo = input(
+                "Enter UU-CF, II-CF, MF-SGD, MF-ALS, NCF, TFIDF, Hybrid: ")
             userID = input(
-                        "Enter username (for critics) or return to quit: "
-                    )
-            n_recs = int(input('Enter number of recommendatoins: '))
+                "Enter username (for critics) or return to quit: "
+            )
+            n_recs = int(input('Enter number of recommendations: '))
 
             if len(prefs) > 0 and len(prefs) <= 10:  # critics
-                
+
                 if algo == 'UU-CF' or algo == 'uu-cf':
-                    sim_input = str(input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
+                    sim_input = str(
+                        input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
                     threshold = float(input("Similarity threshold: "))
                     algo = getRecommendedUsers
                     matrix = usersim
@@ -3846,8 +3960,11 @@ def main():
 
                     recs = algo(prefs, matrix, userID, threshold)
 
+                    print(f"recs for {userID}: {str(recs[:n_recs])}")
+
                 elif algo == 'II-CF' or algo == 'ii-cf':
-                    sim_input = str(input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
+                    sim_input = str(
+                        input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
                     threshold = float(input("Similarity threshold: "))
                     algo = getRecommendedItems
                     matrix = itemsim
@@ -3859,9 +3976,11 @@ def main():
 
                     recs = algo(prefs, matrix, userID, threshold)
 
+                    print(f"recs for {userID}: {str(recs[:n_recs])}")
+
                 elif algo == 'MF-SGD' or algo == 'mf-sgd':
                     print('fix')
-                
+
                 elif algo == 'MF-ALS' or algo == 'mf-als':
                     print('fix')
 
@@ -3870,7 +3989,7 @@ def main():
 
                 elif algo == "TFIDF" or algo == "tfidf":
                     if tfidf_ran:
-                        
+
                         if userID != "":
                             # Go run the TFIDF algo
                             threshold = float(input("Similarity threshold: "))
@@ -3880,21 +3999,18 @@ def main():
                             print(f"recs for {userID}: {str(recs)}")
                     else:
                         print("Run the TFIDF command first to set up TFIDF data")
-                
+
                 elif algo == "Hybrid" or algo == "hybrid":
                     if hybrid_ran & tfidf_ran & sim_ran:
-                        userID = input(
-                            "Enter username (for critics) or return to quit: "
-                        )
                         if userID != "":
+                            threshold = float(input("Similarity threshold: "))
                             # Go run the hybrid algo
                             print("Go run the hybrid algo for %s" % userID)
-                            n = int(input("Enter number of recommendations: "))
                             recs = get_hybrid_recommendations(
                                 prefs,
                                 updated_cosim_matrix,
                                 userID,
-                                n,
+                                n_recs,
                                 movies,
                                 threshold,
                             )
@@ -3903,7 +4019,7 @@ def main():
                         print(
                             "Run the SIM, TFIDF, and HYB commands first to set up hybrid data"
                         )
-                
+
                 else:
                     print("Algorithm %s is invalid, try again!" % algo)
 
@@ -3932,7 +4048,8 @@ def main():
                     pass
 
                 if algo == 'UU-CF' or algo == 'uu-cf':
-                    sim_input = str(input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
+                    sim_input = str(
+                        input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
                     threshold = float(input("Similarity threshold: "))
                     algo = getRecommendedUsers
                     matrix = usersim
@@ -3944,8 +4061,11 @@ def main():
 
                     recs = algo(prefs, matrix, userID, threshold)
 
+                    print(f"recs for {userID}: {str(recs[:n_recs])}")
+
                 elif algo == 'II-CF' or algo == 'ii-cf':
-                    sim_input = str(input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
+                    sim_input = str(
+                        input("Enter similarity calculation - distance (d) or pearson (p): ")).lower()
                     threshold = float(input("Similarity threshold: "))
                     algo = getRecommendedItems
                     matrix = itemsim
@@ -3957,9 +4077,11 @@ def main():
 
                     recs = algo(prefs, matrix, userID, threshold)
 
+                    print(f"recs for {userID}: {str(recs[:n_recs])}")
+
                 elif algo == 'MF-SGD' or algo == 'mf-sgd':
                     print('fix')
-                
+
                 elif algo == 'MF-ALS' or algo == 'mf-als':
                     print('fix')
 
@@ -3979,16 +4101,15 @@ def main():
 
                 elif algo == "Hybrid" or algo == "hybrid":
                     if hybrid_ran & tfidf_ran & sim_ran:
-                        userID = input("Enter userid (for ml-100k) or return to quit: ")
                         if userID != "":
+                            threshold = float(input("Similarity threshold: "))
                             # Go run the hybrid algo
                             print("Go run the hybrid algo for %s" % userID)
-                            n = int(input("Enter number of recommendations: "))
                             recs = get_hybrid_recommendations(
                                 prefs,
                                 updated_cosim_matrix,
                                 userID,
-                                n,
+                                n_recs,
                                 movies,
                                 threshold,
                             )
@@ -4006,12 +4127,13 @@ def main():
                 print()
 
         elif file_io == 'TFIDF-GRID' or file_io == 'tfidf-grid':
-        
-            tfidf_thresholds = [0, 0.3061939222, 0.5764484463073936, 0.8467029704]
-            
+
+            tfidf_thresholds = [0, 0.3061939222,
+                                0.5764484463073936, 0.8467029704]
+
             for tfidf_threshold in tfidf_thresholds:
-                sim_sig_weighting = 0 # TFIDF doesn't use a sim sig weighting
-                n_neighbors = 0 # TFIDF doesn't use n_neighbors
+                sim_sig_weighting = 0  # TFIDF doesn't use a sim sig weighting
+                n_neighbors = 0  # TFIDF doesn't use n_neighbors
                 algo = new_get_TFIDF_recommendations
                 # Make cosim matrix
                 R = to_array(prefs)
@@ -4036,15 +4158,16 @@ def main():
         elif file_io == 'HYB-GRID' or file_io == 'hyb-grid':
 
             n_neighbors = 100
-            sim_sig_weighting = 100 # best is 100 from midterm
-            tfidf_thresholds = [0, 0.3061939222, 0.5764484463073936, 0.8467029704]
+            sim_sig_weighting = 100  # best is 100 from midterm
+            tfidf_thresholds = [0, 0.3061939222,
+                                0.5764484463073936, 0.8467029704]
             weighting_factors = [.25, .5, .75, 1]
             sim_methods = [sim_distance, sim_pearson]
 
             for tfidf_threshold in tfidf_thresholds:
                 for weighting_factor in weighting_factors:
                     for sim_method in sim_methods:
-                    
+
                         # Make cosim matrix
                         R = to_array(prefs)
                         feature_str = to_string(features)
