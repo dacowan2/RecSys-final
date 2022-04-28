@@ -2137,13 +2137,25 @@ class ExplicitMF():
 
     def predict_all(self):
         """ Predict ratings for every user and item """
-
         predictions = np.zeros((self.user_vecs.shape[0],
                                 self.item_vecs.shape[0]))
+
         for u in range(self.user_vecs.shape[0]):
             for i in range(self.item_vecs.shape[0]):
                 predictions[u, i] = self.predict(u, i)
+
         return predictions
+
+    def predict_user(self, user, movies, n):
+        user_index = int(user) - 1
+        preds = {}
+        for i in range(self.item_vecs.shape[0]):
+            item_id = i + 1
+            item = movies[str(item_id)]
+            preds[item] = self.predict(user_index, i)
+
+        preds = dict(sorted(preds.items(), key=lambda x: x[1], reverse=True))
+        return dict(list(preds.items())[:n])
 
     def get_mse(self, pred, actual):
         ''' Calc MSE between predicted and actual values '''
@@ -3979,10 +3991,18 @@ def main():
                     print(f"recs for {userID}: {str(recs[:n_recs])}")
 
                 elif algo == 'MF-SGD' or algo == 'mf-sgd':
-                    print('fix')
+                    try:
+                        recs = MF_SGD.predict_user(userID, movies, n_recs)
+                        print(f"recs for {userID}: {str(recs)}")
+                    except:
+                        print('Run MF-SGD first!')
 
                 elif algo == 'MF-ALS' or algo == 'mf-als':
-                    print('fix')
+                    try:
+                        recs = MF_ALS.predict_user(userID, movies, n_recs)
+                        print(f"recs for {userID}: {str(recs)}")
+                    except:
+                        print('Run MF-ALS first!')
 
                 elif algo == 'NCF' or algo == 'ncf':
                     print('fix')
@@ -4080,10 +4100,18 @@ def main():
                     print(f"recs for {userID}: {str(recs[:n_recs])}")
 
                 elif algo == 'MF-SGD' or algo == 'mf-sgd':
-                    print('fix')
+                    try:
+                        recs = MF_SGD.predict_user(userID, movies, n_recs)
+                        print(f"recs for {userID}: {str(recs)}")
+                    except:
+                        print('Run MF-SGD first!')
 
                 elif algo == 'MF-ALS' or algo == 'mf-als':
-                    print('fix')
+                    try:
+                        recs = MF_ALS.predict_user(userID, movies, n_recs)
+                        print(f"recs for {userID}: {str(recs)}")
+                    except:
+                        print('Run MF-ALS first!')
 
                 elif algo == 'NCF' or algo == 'ncf':
                     print('fix')
