@@ -13,6 +13,7 @@ from numpy import mean, std, array, median, square
 from numpy.linalg import solve
 from scipy.stats import spearmanr
 from scipy.stats import kendalltau
+import scipy.stats as stats
 import pandas as pd
 import csv
 import matplotlib.pyplot as plt
@@ -35,7 +36,7 @@ import sklearn.metrics
 from keras.layers import Input, Embedding, Flatten, Dot, Dense, Concatenate, BatchNormalization, Dropout
 from keras.models import Model, load_model
 from keras.losses import MeanSquaredError
-from keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 
 # ("once") #("module") #("default") #("error")
 warnings.filterwarnings("ignore")
@@ -764,7 +765,7 @@ def loo_cv(prefs, metric, sim, algo, dataset_name):
     items = list(prefs_df.columns)
     error_list = []
 
-    start = time.time()
+    start = time()
     for i, user in enumerate(users):
         for item in items:
             # if user has rated item
@@ -784,7 +785,7 @@ def loo_cv(prefs, metric, sim, algo, dataset_name):
                 prefs[user][item] = removed_rating
 
         if i % 10 == 0 and not i == 0:
-            secs = time.time() - start
+            secs = time() - start
             print(f"Number of users processed: {i}")
             print(f"==>> {secs} secs for {i} items, secs per item {secs/i}")
 
@@ -867,12 +868,12 @@ def calculateSimilarItems(
     # Invert the preference matrix to be item-centric
     itemPrefs = transformPrefs(prefs)
 
-    start = time.time()
+    start = time()
 
     for i, item in enumerate(itemPrefs):
         # Status updates for larger datasets
         if i % 100 == 0 and not i == 0:
-            secs = time.time() - start
+            secs = time() - start
             print(f"Processed {i} out of {len(itemPrefs)} items")
             print(f"==>> {secs} secs for {i} items, secs per item {secs/i}")
 
@@ -902,11 +903,11 @@ def calculateSimilarUsers(
     -- A dictionary with a similarity matrix
     """
     result = {}
-    start = time.time()
+    start = time()
     for i, user in enumerate(prefs):
         # Status updates for larger datasets
         if i % 100 == 0 and not i == 0:
-            secs = time.time() - start
+            secs = time() - start
             print(f"Processed {i} out of {len(prefs)} items")
             print(f"==>> {secs} secs for {i} items, secs per item {secs/i}")
 
@@ -1108,8 +1109,8 @@ def new_getRecommendedUsers(prefs, userMatch, user, threshold, cur_item, movies)
                 simSums.setdefault(item, 0)
                 simSums[item] += sim
 
-    print('Totals items: ')
-    print(totals.items())
+    # print('Totals items: ')
+    # print(totals.items())
     # Create the normalized list
     rankings = [
         (total / simSums[item], item)
@@ -1160,17 +1161,17 @@ def loo_cv_sim(
          error_list: list of actual-predicted differences
     """
 
-    print('Sim matrix')
-    print(sim_matrix)
+    # print('Sim matrix')
+    # print(sim_matrix)
 
     users = list(prefs.keys())
     error_list = []
 
-    start = time.time()
+    start = time()
     for i, user in enumerate(users):
 
         if i % 10 == 0 and not i == 0:
-            secs = time.time() - start
+            secs = time() - start
             print(f"Number of users processed: {i}")
             print(f"==>> {secs} secs for {i} users, secs per user {secs/i}")
 
@@ -1203,7 +1204,7 @@ def loo_cv_sim(
 
             prefs[user][item] = removed_rating
 
-    secs = time.time() - start
+    secs = time() - start
     print(f"Number of users processed: {i}")
     print(f"==>> {secs} secs for {i} users, secs per user {secs/i}")
 
@@ -1263,7 +1264,7 @@ def loo_cv_sim(
     df_final = pd.concat([df, cur_res_df])
     df_final.to_csv("final_result_full.csv", index=False)
 
-    return (mse, rmse, mae), list(square(error_list))
+    return (mse, rmse, mae), error_list
 
 
 def from_file_to_2D(path, genrefile, itemfile):
@@ -2291,8 +2292,10 @@ def train_test_split(ratings, TRAIN_ONLY):
 
 
 def train_test_validation_split(dataset):
-    train, test_temp = sklearn.model_selection.train_test_split(dataset, test_size=0.2, random_state=42)
-    val, test = sklearn.model_selection.train_test_split(test_temp, test_size=0.5, random_state=42)
+    train, test_temp = sklearn.model_selection.train_test_split(
+        dataset, test_size=0.2, random_state=42)
+    val, test = sklearn.model_selection.train_test_split(
+        test_temp, test_size=0.5, random_state=42)
 
     return train, test, val
 
@@ -2418,6 +2421,7 @@ def main():
             "REC(ommendations, Item or User CF)?, \n"
             "TFIDF(and cosine sim Setup)?, \n"
             "TFIDF-GRID \n"
+            "HYP(othesis test)? \n"
             "HYB(RID setup?), \n"
             "HYB-GRID \n"
             "TTV (train-test-validation split) \n"
@@ -3079,6 +3083,7 @@ def main():
                             )
                         )
                         sim_method = "sim_distance"
+                        sim_ran = True
 
                     elif sub_cmd == "WD" or sub_cmd == "wd":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3096,6 +3101,7 @@ def main():
                             ),
                         )
                         sim_method = "sim_distance"
+                        sim_ran = True
 
                     elif sub_cmd == "RP" or sub_cmd == "rp":
                         # Load the dictionary back from the pickle file.
@@ -3104,6 +3110,7 @@ def main():
                                 f"sim_mat/save_usersim_pearson_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_pearson"
+                        sim_ran = True
 
                     elif sub_cmd == "WP" or sub_cmd == "wp":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3121,6 +3128,7 @@ def main():
                             ),
                         )
                         sim_method = "sim_pearson"
+                        sim_ran = True
 
                     elif sub_cmd == "RT" or sub_cmd == "rt":
                         # Load the dictionary back from the pickle file.
@@ -3130,6 +3138,7 @@ def main():
                             )
                         )
                         sim_method = "sim_tanimoto"
+                        sim_ran = True
 
                     elif sub_cmd == "WT" or sub_cmd == "wt":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3147,6 +3156,7 @@ def main():
                             ),
                         )
                         sim_method = "sim_tanimoto"
+                        sim_ran = True
 
                     elif sub_cmd == "RJ" or sub_cmd == "rj":
                         # Load the dictionary back from the pickle file.
@@ -3155,6 +3165,7 @@ def main():
                                 f"sim_mat/save_usersim_jaccard_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_jaccard"
+                        sim_ran = True
 
                     elif sub_cmd == "WJ" or sub_cmd == "wj":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3172,6 +3183,7 @@ def main():
                             ),
                         )
                         sim_method = "sim_jaccard"
+                        sim_ran = True
 
                     elif sub_cmd == "RC" or sub_cmd == "rc":
                         # Load the dictionary back from the pickle file.
@@ -3180,6 +3192,7 @@ def main():
                                 f"sim_mat/save_usersim_cosine_{dataset_name}.p", "rb")
                         )
                         sim_method = "sim_cosine"
+                        sim_ran = True
 
                     elif sub_cmd == "WC" or sub_cmd == "wc":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3196,6 +3209,7 @@ def main():
                                 f"sim_mat/save_usersim_cosine_{dataset_name}.p", "wb"),
                         )
                         sim_method = "sim_cosine"
+                        sim_ran = True
 
                     elif sub_cmd == "RS" or sub_cmd == "rs":
                         # Load the dictionary back from the pickle file.
@@ -3205,6 +3219,7 @@ def main():
                             )
                         )
                         sim_method = "sim_spearman"
+                        sim_ran = True
 
                     elif sub_cmd == "WS" or sub_cmd == "ws":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3222,6 +3237,7 @@ def main():
                             ),
                         )
                         sim_method = "sim_spearman"
+                        sim_ran = True
 
                     elif sub_cmd == "RK" or sub_cmd == "rk":
                         # Load the dictionary back from the pickle file.
@@ -3232,6 +3248,7 @@ def main():
                             )
                         )
                         sim_method = "sim_kendall_tau"
+                        sim_ran = True
 
                     elif sub_cmd == "WK" or sub_cmd == "wk":
                         # transpose the U-I matrix and calc item-item similarities matrix
@@ -3250,6 +3267,7 @@ def main():
                             ),
                         )
                         sim_method = "sim_kendall_tau"
+                        sim_ran = True
 
                     else:
                         print("Sim sub-command %s is invalid, try again" % sub_cmd)
@@ -3640,11 +3658,6 @@ def main():
                         "UU-CF, II-CF, TFIDF, or hybrid recommendations? "
                     )
 
-                    if sim_method == 'sim_distance':
-                        sim = sim_distance
-                    elif sim_method == 'sim_pearson':
-                        sim = sim_pearson
-
                     if input_algo.lower() == "uu-cf":
                         threshold = float(input("Similarity threshold: "))
                         sim_sig_weighting = float(
@@ -3652,6 +3665,8 @@ def main():
                         algo = new_getRecommendedUsers
                         sim_matrix = usersim
                         mov = None
+                        wf = 'n/a'
+
                     elif input_algo.lower() == "ii-cf":
                         threshold = float(input("Similarity threshold: "))
                         sim_sig_weighting = float(
@@ -3659,6 +3674,8 @@ def main():
                         algo = new_getRecommendedItems  # Item-based recommendation
                         sim_matrix = itemsim
                         mov = None
+                        wf = 'n/a'
+
                     elif input_algo.lower() == "tfidf":
                         threshold = float(input("Similarity threshold: "))
                         sim_sig_weighting = 0  # TFIDF doesn't use a sim sig weighting
@@ -3667,22 +3684,13 @@ def main():
                         sim_matrix = cosim_matrix
                         sim = 'TFIDF'
                         mov = movies
+                        wf = 'n/a'
 
-                        error_total, error_list = loo_cv_sim(
-                            prefs,
-                            sim,
-                            algo,
-                            sim_matrix,
-                            dataset_name,
-                            threshold,
-                            sim_sig_weighting,
-                            n_neighbors,
-                            mov,
-                        )
                     elif input_algo.lower() == "hybrid":
                         algo = new_get_hybrid_recommendations
                         mov = movies
                         threshold = float(input("Similarity threshold: "))
+                        wf = weighting_factor
 
                         try:
                             sim_matrix = updated_cosim_matrix
@@ -3690,28 +3698,15 @@ def main():
                             print("Please run the HYB command first.")
                             return
 
-                        error_total, error_list = loo_cv_sim(
-                            prefs,
-                            sim,
-                            algo,
-                            sim_matrix,
-                            dataset_name,
-                            threshold,
-                            sim_sig_weighting,
-                            n_neighbors,
-                            mov,
-                            weighting_factor
-                        )
-
                     else:
                         print(
-                            'Invalid recommendation algo. Please say "user" or "item".'
+                            'Invalid recommendation algo.'
                         )
                         return
 
                     if not sim_ran:
+                        print('Run the sim/simu command first!')
                         continue
-                        print()
 
                     elif sim_method == "sim_pearson":
                         sim = sim_pearson
@@ -3725,6 +3720,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3741,6 +3737,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3757,6 +3754,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3773,6 +3771,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3789,6 +3788,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3805,6 +3805,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3821,6 +3822,7 @@ def main():
                             sim_sig_weighting,
                             n_neighbors,
                             mov,
+                            wf
                         )
 
                         print()
@@ -3832,16 +3834,16 @@ def main():
                     if dataset_name == "critics":
                         print(error_list)
 
-                    # # for anova testing purposes
-                    # sim_str = str(sim).split()[1]
-                    # algo_str = str(algo).split()[1]
-                    # pickle.dump(
-                    #     error_list,
-                    #     open(
-                    #         f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{sim_sig_weighting}_{sim_str}_{algo_str}_{n_neighbors}.p",
-                    #         "wb",
-                    #     ),
-                    # )
+                    # for anova testing purposes
+                    sim_str = str(sim).split()[1]
+                    algo_str = str(algo).split()[1]
+                    pickle.dump(
+                        error_list,
+                        open(
+                            f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{sim_sig_weighting}_{sim_str}_{algo_str}_{n_neighbors}.p",
+                            "wb",
+                        ),
+                    )
 
                 else:
                     print("Empty dictionary, run R(ead) OR Empty Sim Matrix, run Sim!")
@@ -3965,7 +3967,20 @@ def main():
                     n_neighbors,
                     mov,
                 )
-       
+
+        elif file_io == 'HYP' or file_io == 'hyp':
+            all_errs = []
+
+            ers = pickle.load(
+                open(
+                    f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{sim_sig_weighting}_{sim_str}_{algo_str}_{n_neighbors}.p",
+                    "rb",
+                ),
+            )
+
+            stats.probplot(ers, dist="norm", plot=plt)
+            plt.show()
+
         elif file_io == "HYB" or file_io == "hyb":
             weighting_factors = [0, 0.25, 0.5, 0.75, 1]
             weighting_factor = float(
@@ -4037,31 +4052,38 @@ def main():
                 ttv_ran = True
             else:
                 print('Run PD-RML or PD-R first!')
-        
+
         elif file_io == 'BNCF' or file_io == 'bncf':
             if pd_r_ran == True or pd_rml_ran == True:
 
                 n_factors = int(input('Number of Factors: '))
                 lr = float(input('Learning rate: '))
-                dropout_prob = float(input('Dropout probability (default = 0.2): '))
-                n_nodes_per_layer_list = input('Number of nodes per layer (ie. [64, 32, 16, 8, 4, 2]): ')
-                n_nodes_per_layer_list = n_nodes_per_layer_list.strip('][').split(', ')
-                n_nodes_per_layer_list = [int(i) for i in n_nodes_per_layer_list]
+                dropout_prob = float(
+                    input('Dropout probability (default = 0.2): '))
+                n_nodes_per_layer_list = input(
+                    'Number of nodes per layer (ie. [64, 32, 16, 8, 4, 2]): ')
+                n_nodes_per_layer_list = n_nodes_per_layer_list.strip(
+                    '][').split(', ')
+                n_nodes_per_layer_list = [int(i)
+                                          for i in n_nodes_per_layer_list]
                 # creating item embedding path
                 movie_input = Input(shape=[1], name="Item-Input")
-                movie_embedding = Embedding(n_items+1, n_factors, name="Item-Embedding")(movie_input)
+                movie_embedding = Embedding(
+                    n_items+1, n_factors, name="Item-Embedding")(movie_input)
                 movie_vec = Flatten(name="Flatten-Items")(movie_embedding)
 
                 # creating user embedding path
                 user_input = Input(shape=[1], name="User-Input")
-                user_embedding = Embedding(n_users+1, n_factors, name="User-Embedding")(user_input)
+                user_embedding = Embedding(
+                    n_users+1, n_factors, name="User-Embedding")(user_input)
                 user_vec = Flatten(name="Flatten-Users")(user_embedding)
 
                 # concatenate features
                 conc = Concatenate()([movie_vec, user_vec])
 
                 # add fully-connected-layers
-                dense = Dense(n_nodes_per_layer_list[0], activation='relu')(conc)
+                dense = Dense(
+                    n_nodes_per_layer_list[0], activation='relu')(conc)
                 dropout = Dropout(dropout_prob)(dense)
                 batch_norm = BatchNormalization()(dropout)
 
@@ -4070,33 +4092,37 @@ def main():
                     dropout = Dropout(dropout_prob)(dense)
                     batch_norm = BatchNormalization()(dropout)
 
-                dense = Dense(n_nodes_per_layer_list[-1], activation='relu')(batch_norm)
+                dense = Dense(
+                    n_nodes_per_layer_list[-1], activation='relu')(batch_norm)
                 out = Dense(1)(dense)
 
                 # Create model and compile it
                 model = Model([user_input, movie_input], out)
-                model.compile(optimizer=Adam(learning_rate=lr), loss=MeanSquaredError())
+                model.compile(optimizer=Adam(learning_rate=lr),
+                              loss=MeanSquaredError())
                 model.summary()
-            
+
                 ncf_built = True
-            else: 
+            else:
                 print('Run PD-RML or PD-R first!')
 
         elif file_io == 'TNCF' or file_io == 'tncf':
             if ncf_built == True and ttv_ran == True:
-                epochs = int(input('Number of Epochs: ')) # default 250
+                epochs = int(input('Number of Epochs: '))  # default 250
                 batch_size = int(input('Batch size: '))
                 patience = int(input('Patience: '))
                 early_stopping_metric = 'val_loss'
 
-                callback = EarlyStopping(monitor=early_stopping_metric, patience=patience)
-                history = model.fit(x = [train.user_id, train.item_id], 
-                                    y = train.rating, 
-                                    validation_data = ((val.user_id, val.item_id), val.rating), 
-                                    epochs=epochs, 
-                                    verbose=1, 
-                                    batch_size = batch_size, 
-                                    callbacks = [callback])
+                callback = EarlyStopping(
+                    monitor=early_stopping_metric, patience=patience)
+                history = model.fit(x=[train.user_id, train.item_id],
+                                    y=train.rating,
+                                    validation_data=(
+                                        (val.user_id, val.item_id), val.rating),
+                                    epochs=epochs,
+                                    verbose=1,
+                                    batch_size=batch_size,
+                                    callbacks=[callback])
                 ncf_trained = True
             else:
                 print('Run BNCF and TTV first!')
@@ -4110,14 +4136,16 @@ def main():
                 for pred_rating in predictions:
                     predictions_list.append(pred_rating[0])
 
-                ratings_preds_array = np.array(predictions_list).astype('float64')
+                ratings_preds_array = np.array(
+                    predictions_list).astype('float64')
                 ratings_actual_array = np.array(test.rating)
 
-                test_mse = sklearn.metrics.mean_squared_error(ratings_actual_array, ratings_preds_array)
+                test_mse = sklearn.metrics.mean_squared_error(
+                    ratings_actual_array, ratings_preds_array)
 
                 print(f'STD of predictions on test split: {preds_std}')
                 print(f'MSE of predictions on test split: {test_mse}')
-            
+
             else:
                 print('Run TNCF first!')
 
@@ -4131,11 +4159,13 @@ def main():
         elif file_io == "RECS" or file_io == "recs":
             print()
 
-            algo = input("Enter UU-CF, II-CF, MF-SGD, MF-ALS, NCF, TFIDF, Hybrid: ")
+            algo = input(
+                "Enter UU-CF, II-CF, MF-SGD, MF-ALS, NCF, TFIDF, Hybrid: ")
             userID = input("Enter username (for critics) or return to quit: ")
             n_recs = int(input('Enter number of recommendations: '))
 
-            if (len(prefs) > 0 and len(prefs) <= 10) or  (df.shape[0] > 0 and df.shape[0] <= 10):   # critics
+            # critics
+            if (len(prefs) > 0 and len(prefs) <= 10) or (df.shape[0] > 0 and df.shape[0] <= 10):
 
                 if algo == 'UU-CF' or algo == 'uu-cf':
                     sim_input = str(
@@ -4185,16 +4215,21 @@ def main():
 
                 elif algo == 'NCF' or algo == 'ncf':
                     if ncf_trained == True:
-                        
+
                         single_user_all_items_pairs_list = []
                         for i in range(n_items):
-                            single_user_all_items_pairs_list.append([userID, i])
+                            single_user_all_items_pairs_list.append(
+                                [userID, i])
 
-                        users_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,0].reshape(-1,1)
-                        items_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,1].reshape(-1,1)
-                        all_predictions = model.predict([users_in_single_user_all_items_pairs, items_in_single_user_all_items_pairs])
-                        
-                        recs = [(float(all_predictions[i]), movies[str(items_in_single_user_all_items_pairs[i])]) for i in range(len(items_in_single_user_all_items_pairs))]
+                        users_in_single_user_all_items_pairs = np.array(
+                            single_user_all_items_pairs_list)[:, 0].reshape(-1, 1)
+                        items_in_single_user_all_items_pairs = np.array(
+                            single_user_all_items_pairs_list)[:, 1].reshape(-1, 1)
+                        all_predictions = model.predict(
+                            [users_in_single_user_all_items_pairs, items_in_single_user_all_items_pairs])
+
+                        recs = [(float(all_predictions[i]), movies[str(items_in_single_user_all_items_pairs[i])])
+                                for i in range(len(items_in_single_user_all_items_pairs))]
                         print(f"recs for {userID}: {str(recs)}")
 
                 elif algo == "TFIDF" or algo == "tfidf":
@@ -4286,15 +4321,20 @@ def main():
 
                         single_user_all_items_pairs_list = []
                         for i in range(n_items):
-                            single_user_all_items_pairs_list.append([int(userID), int(i)])
+                            single_user_all_items_pairs_list.append(
+                                [int(userID), int(i)])
 
-                        users_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,0].reshape(-1,1)
-                        items_in_single_user_all_items_pairs = np.array(single_user_all_items_pairs_list)[:,1].reshape(-1,1)
+                        users_in_single_user_all_items_pairs = np.array(
+                            single_user_all_items_pairs_list)[:, 0].reshape(-1, 1)
+                        items_in_single_user_all_items_pairs = np.array(
+                            single_user_all_items_pairs_list)[:, 1].reshape(-1, 1)
 
-                        all_predictions = model.predict([users_in_single_user_all_items_pairs, items_in_single_user_all_items_pairs])
+                        all_predictions = model.predict(
+                            [users_in_single_user_all_items_pairs, items_in_single_user_all_items_pairs])
 
-                        recs = [(float(all_predictions[i]), movies[str(items_in_single_user_all_items_pairs[i][0] + 1)]) for i in range(len(items_in_single_user_all_items_pairs))]
-                        recs.sort(reverse = True)
+                        recs = [(float(all_predictions[i]), movies[str(items_in_single_user_all_items_pairs[i][0] + 1)])
+                                for i in range(len(items_in_single_user_all_items_pairs))]
+                        recs.sort(reverse=True)
 
                         print(f"recs for {userID}: {str(recs[:n_recs])}")
 
