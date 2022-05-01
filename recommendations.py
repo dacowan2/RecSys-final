@@ -9,7 +9,7 @@ CSC381 Programmer/Researcher: Brad Shook, Daniel Cowan, Drew Dibble
 
 import os
 from math import sqrt
-from numpy import mean, std, array, median, square
+from numpy import mean, std, array, median
 from numpy.linalg import solve
 from scipy.stats import spearmanr
 from scipy.stats import kendalltau
@@ -21,10 +21,8 @@ import pickle
 from time import time
 import warnings
 import traceback
-from turtle import color
 from copy import deepcopy
 import numpy as np
-import math
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import mean_squared_error
@@ -33,7 +31,7 @@ import sklearn.model_selection
 from keras.models import load_model
 from keras.callbacks import EarlyStopping
 import sklearn.metrics
-from keras.layers import Input, Embedding, Flatten, Dot, Dense, Concatenate, BatchNormalization, Dropout
+from keras.layers import Input, Embedding, Flatten, Dense, Concatenate, BatchNormalization, Dropout
 from keras.models import Model, load_model
 from keras.losses import MeanSquaredError
 from tensorflow.keras.optimizers import Adam
@@ -3969,17 +3967,41 @@ def main():
                 )
 
         elif file_io == 'HYP' or file_io == 'hyp':
-            all_errs = []
+            files = os.listdir(os.path.join(path, 'errors'))
+            print('Errors that can be tested: ')
+            for i, fl in enumerate(files):
+                print(f'{i+1}: {fl}')
 
-            ers = pickle.load(
-                open(
-                    f"errors/sq_errors_{dataset_name}_{str(threshold).replace('.',',')}_{sim_sig_weighting}_{sim_str}_{algo_str}_{n_neighbors}.p",
-                    "rb",
-                ),
-            )
+            print()
 
-            stats.probplot(ers, dist="norm", plot=plt)
-            plt.show()
+            i_one = int(input('Index of first model to test: ')) - 1
+            i_two = int(input('Index of second model to test: ')) - 1
+
+            if 0 <= i_one <= len(files)-1 and 0 <= i_two <= len(files)-1:
+                m_one = files[i_one]
+                m_two = files[i_two]
+
+                ers_one = pickle.load(
+                    open(os.path.join(path, 'errors', m_one), "rb"))
+                ers_two = pickle.load(
+                    open(os.path.join(path, 'errors', m_two), "rb"))
+
+                print()
+                print(
+                    f'Performing independence test for models {m_one} and {m_two}:')
+
+                t_u_lcv, p_u_lcv = stats.ttest_ind(
+                    ers_one, ers_two)
+                print("t = " + str(t_u_lcv))
+                print("p = " + str(p_u_lcv))
+
+                if p_u_lcv < 0.05:
+                    print('We can reject the null that the two means are the same.')
+                else:
+                    print('We cannot reject the null that the two means are the same.')
+            else:
+                print(
+                    f'Invalid file index! Please input an index between 1 and {len(files)}.')
 
         elif file_io == "HYB" or file_io == "hyb":
             weighting_factors = [0, 0.25, 0.5, 0.75, 1]
