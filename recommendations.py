@@ -4142,17 +4142,18 @@ def main():
 
         elif file_io == 'BNCF' or file_io == 'bncf':
             if pd_r_ran == True or pd_rml_ran == True:
+                try:
+                    n_factors = int(input('Number of Factors: '))
+                    lr = float(input('Learning rate: '))
+                    dropout_prob = float(
+                        input('Dropout probability (default = 0.2): '))
+                    n_nodes_per_layer_list = input(
+                        'Number of nodes per layer (ie. [64, 32, 16, 8, 4, 2]): ')
+                    n_nodes_per_layer_list = eval(n_nodes_per_layer_list)
+                except:
+                    print('Invalid input!')
+                    continue
 
-                n_factors = int(input('Number of Factors: '))
-                lr = float(input('Learning rate: '))
-                dropout_prob = float(
-                    input('Dropout probability (default = 0.2): '))
-                n_nodes_per_layer_list = input(
-                    'Number of nodes per layer (ie. [64, 32, 16, 8, 4, 2]): ')
-                n_nodes_per_layer_list = n_nodes_per_layer_list.strip(
-                    '][').split(', ')
-                n_nodes_per_layer_list = [int(i)
-                                          for i in n_nodes_per_layer_list]
                 # creating item embedding path
                 movie_input = Input(shape=[1], name="Item-Input")
                 movie_embedding = Embedding(
