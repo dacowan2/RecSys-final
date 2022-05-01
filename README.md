@@ -39,10 +39,31 @@ In order to run MF-ALS:
 
 ## TFIDF
 
-
 In order to run TFIDF: 
 1) Run RML or R to load in the data
 2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
 3) Run TFIDF.
 5) Run RECS, enter 'tfidf' and answer the pop-up questions. This will return reccommendations for the given user.
+
+## HYB
+
+In order to run HYB: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TFIDF.
+4) Run SIM.
+5) Run RECS, enter 'hybrid' and answer the pop-up questions. This will return reccommendations for the given user.
+
+## NCF
+
+In order to run NCFF: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TTV. This will create train, validation, and test splits.
+4) Run BNCF. This will compile the NCF model.
+5) Run TNCF. This will train the NCF model.
+6) (Optional) Run ENCF. This will evaluate the model on the test split.
+7) (Optional) Run SNCF. This will save the trained NCF model.
+8) (Optional) Run RNCF. This will load a previously trained NCF model.
+9) Run RECS, enter 'ncf' and answer the pop-up questions. This will return reccommendations for the given user.
 
