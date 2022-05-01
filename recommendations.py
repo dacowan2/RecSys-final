@@ -11,9 +11,8 @@ import os
 from math import sqrt
 from numpy import mean, std, array, median
 from numpy.linalg import solve
-from scipy.stats import spearmanr
-from scipy.stats import kendalltau
-import scipy.stats as stats
+from scipy.stats import spearmanr, kendalltau, f_oneway
+from statsmodels.stats.weightstats import ztest
 import pandas as pd
 import csv
 import matplotlib.pyplot as plt
@@ -34,7 +33,7 @@ import sklearn.metrics
 from keras.layers import Input, Embedding, Flatten, Dense, Concatenate, BatchNormalization, Dropout
 from keras.models import Model, load_model
 from keras.losses import MeanSquaredError
-from tensorflow.keras.optimizers import Adam
+from keras.optimizers import adam_v2
 
 # ("once") #("module") #("default") #("error")
 warnings.filterwarnings("ignore")
@@ -2420,6 +2419,7 @@ def main():
             "TFIDF(and cosine sim Setup)?, \n"
             "TFIDF-GRID \n"
             "HYP(othesis test)? \n"
+            "ANOVA (test)?"
             "HYB(RID setup?), \n"
             "HYB-GRID \n"
             "TTV (train-test-validation split) \n"
@@ -3990,18 +3990,83 @@ def main():
                 print(
                     f'Performing independence test for models {m_one} and {m_two}:')
 
-                t_u_lcv, p_u_lcv = stats.ttest_ind(
-                    ers_one, ers_two)
-                print("t = " + str(t_u_lcv))
-                print("p = " + str(p_u_lcv))
+                z, p = ztest(ers_one, ers_two)
+                print("z = " + str(z))
+                print("p = " + str(p))
 
-                if p_u_lcv < 0.05:
+                if p < 0.05:
                     print('We can reject the null that the two means are the same.')
                 else:
                     print('We cannot reject the null that the two means are the same.')
             else:
                 print(
                     f'Invalid file index! Please input an index between 1 and {len(files)}.')
+
+        elif file_io == 'ANOVA' or file_io == 'anova':
+            files = os.listdir(os.path.join(path, 'errors'))
+            print('Errors that can be tested: ')
+            for i, fl in enumerate(files):
+                print(f'{i+1}: {fl}')
+
+            print()
+            num_input = input(
+                'Would you like to test all (type "all") or some (type "some") of the models? ')
+
+            if num_input.lower() == 'all':
+                a = [files[i] for i in range(len(files))]
+                args = (pickle.load(open(os.path.join(path, 'errors', x), "rb"))
+                        for x in a)
+
+                F, p = f_oneway(*args)
+                print(f'F statistic = {F}')
+                print(f'p-value = {p}')
+
+                if p < 0.05:
+                    print('We can reject the null that the two means are the same.')
+                else:
+                    print('We cannot reject the null that the two means are the same.')
+
+            elif num_input.lower() == 'some':
+                indices_inp = input(
+                    'List the numbers of the models you want to test (separated by commas): ')
+                indices = indices_inp.replace(' ', '').strip().split(',')
+
+                try:
+                    indices = [int(i)-1 for i in indices]
+                except:
+                    print(
+                        'Invalid input for indices! Make sure you are inputting comma-separated integers.')
+                    continue
+
+                valid_ind = [True if 0 <= i < len(
+                    files) else False for i in indices]
+
+                if not False in valid_ind:
+                    a = [files[i] for i in indices]
+                    args = (pickle.load(open(os.path.join(path, 'errors', x), "rb"))
+                            for x in a)
+
+                    print(f'Performing independence test for these models:')
+                    for i in a[:-1]:
+                        print(i, end=', ')
+                    print(a[-1])
+
+                    F, p = f_oneway(*args)
+                    print(f'F statistic = {F}')
+                    print(f'p-value = {p}')
+
+                    if p < 0.05:
+                        print(
+                            'We can reject the null that the two means are the same.')
+                    else:
+                        print(
+                            'We cannot reject the null that the two means are the same.')
+                else:
+                    print(
+                        f'You entered an invalid index! Make sure all indices are between 1 and {len(files)}')
+
+            else:
+                print('Please only type "all" or "some"!')
 
         elif file_io == "HYB" or file_io == "hyb":
             weighting_factors = [0, 0.25, 0.5, 0.75, 1]
@@ -4120,7 +4185,7 @@ def main():
 
                 # Create model and compile it
                 model = Model([user_input, movie_input], out)
-                model.compile(optimizer=Adam(learning_rate=lr),
+                model.compile(optimizer=adam_v2.Adam(learning_rate=lr),
                               loss=MeanSquaredError())
                 model.summary()
 
