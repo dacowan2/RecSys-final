@@ -96,7 +96,7 @@ In order to evaluate the TFIDF model:
 
 ### HYB
 
-In order to evaluate the TFIDF model:
+In order to evaluate the HYB model:
 1) Run RML or R to load in the data
 2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
 3) Run TFIDF.
