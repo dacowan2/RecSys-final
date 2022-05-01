@@ -37,4 +37,12 @@ In order to run MF-ALS:
 4) Run MF-ALS. Follow the pop-up questions and continue.
 5) Run RECS, enter 'mf-als' and answer the pop-up questions. This will return reccommendations for the given user.
 
+## TFIDF
+
+
+In order to run TFIDF: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TFIDF.
+5) Run RECS, enter 'tfidf' and answer the pop-up questions. This will return reccommendations for the given user.
 
