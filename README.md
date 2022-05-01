@@ -21,11 +21,20 @@ In order to run II-CF:
 
 ## MF-SGD
 
-In order to run UU-CF-D: 
+In order to run MF-SGD: 
 1) Run RML or R to load in the data
 2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
 3) Run T, enter Y. This will create train and test splits.
 4) Run MF-SGD. Follow the pop-up questions and continue.
-5) Run RECS, enter 'uu-cf' and answer the pop-up questions. When you are asked for the similarity calculation, enter 'd' for distance or 'p' for pearson.
+5) Run RECS, enter 'mf-sgd' and answer the pop-up questions. This will return reccommendations for the given user.
+
+## MF-ALS
+
+In order to run MF-ALS: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run T, enter Y. This will create train and test splits.
+4) Run MF-ALS. Follow the pop-up questions and continue.
+5) Run RECS, enter 'mf-als' and answer the pop-up questions. This will return reccommendations for the given user.
 
 
