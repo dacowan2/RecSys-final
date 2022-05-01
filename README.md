@@ -57,7 +57,7 @@ In order to run HYB:
 
 ### NCF
 
-In order to run NCFF: 
+In order to run NCF: 
 1) Run RML or R to load in the data
 2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
 3) Run TTV. This will create train, validation, and test splits.
@@ -68,5 +68,39 @@ In order to run NCFF:
 8) (Optional) Run RNCF. This will load a previously trained NCF model.
 9) Run RECS, enter 'ncf' and answer the pop-up questions. This will return reccommendations for the given user.
 
-## Grid Searches
+## Evaluations
+
+### UU-CF
+
+In order to evaluate the UU-CF model:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run SIMU.
+4) Run LCVSIM, enter 'uu-cf' and the hyperparameters of the model.
+
+### II-CF
+
+In order to evaluate the II-CF model:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run SIM.
+4) Run LCVSIM, enter 'ii-cf' and the hyperparameters of the model.
+
+### TFIDF
+
+In order to evaluate the TFIDF model:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TFIDF.
+4) Run LCVSIM, enter 'tfidf' and the hyperparameters of the model.
+
+### HYB
+
+In order to evaluate the TFIDF model:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TFIDF.
+4) Run SIM.
+5) Run LCVSIM, enter 'hybrid' and the hyperparameters of the model.
+
 
