@@ -2419,7 +2419,7 @@ def main():
             "TFIDF(and cosine sim Setup)?, \n"
             "TFIDF-GRID \n"
             "HYP(othesis test)? \n"
-            "ANOVA (test)?"
+            "ANOVA (test)? \n"
             "HYB(RID setup?), \n"
             "HYB-GRID \n"
             "TTV (train-test-validation split) \n"
@@ -3683,6 +3683,7 @@ def main():
                         sim = 'TFIDF'
                         mov = movies
                         wf = 'n/a'
+                        sim_method = 'TFIDF'
 
                     elif input_algo.lower() == "hybrid":
                         algo = new_get_hybrid_recommendations
@@ -3702,7 +3703,7 @@ def main():
                         )
                         return
 
-                    if not sim_ran:
+                    if not sim_ran and (input_algo.lower() == "ii-cf" or input_algo.lower() == "uu-cf"):
                         print('Run the sim/simu command first!')
                         continue
 
@@ -3825,6 +3826,20 @@ def main():
 
                         print()
 
+                    elif sim_method == 'TFIDF':
+                        error_total, error_list = loo_cv_sim(
+                            prefs,
+                            sim,
+                            algo,
+                            sim_matrix,
+                            dataset_name,
+                            threshold,
+                            sim_sig_weighting,
+                            n_neighbors,
+                            mov,
+                            wf
+                        )
+
                     else:
                         print(
                             "Run Sim(ilarity matrix) command to create/load Sim matrix!"
@@ -3833,8 +3848,14 @@ def main():
                         print(error_list)
 
                     # for anova testing purposes
-                    sim_str = str(sim).split()[1]
-                    algo_str = str(algo).split()[1]
+                    try:
+                        sim_str = str(sim).split()[1]
+                    except:
+                        sim_str = str(sim)
+                    try:
+                        algo_str = str(algo).split()[1]
+                    except:
+                        algo_str = str(algo)
                     pickle.dump(
                         error_list,
                         open(
