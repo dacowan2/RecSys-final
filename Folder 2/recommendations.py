@@ -3688,19 +3688,6 @@ def main():
                         mov = movies
                         wf = 'n/a'
 
-                        error_total, error_list = loo_cv_sim(
-                            prefs,
-                            sim,
-                            algo,
-                            sim_matrix,
-                            dataset_name,
-                            threshold,
-                            sim_sig_weighting,
-                            n_neighbors,
-                            mov,
-                            wf
-                        )
-
                     elif input_algo.lower() == "hybrid":
                         algo = new_get_hybrid_recommendations
                         mov = movies
@@ -3858,8 +3845,14 @@ def main():
                         print(error_list)
 
                     # for anova testing purposes
-                    sim_str = str(sim).split()[1]
-                    algo_str = str(algo).split()[1]
+                    try:
+                        sim_str = str(sim).split()[1]
+                    except:
+                        sim_str = str(sim)
+                    try:
+                        algo_str = str(algo).split()[1]
+                    except:
+                        algo_str = str(algo)
                     pickle.dump(
                         error_list,
                         open(
@@ -4271,7 +4264,7 @@ def main():
 
         elif file_io == 'NCF-GRID' or file_io == 'ncf-grid':
 
-            plt.rcParams['figure.figsize'] = [12,8]
+            plt.rcParams['figure.figsize'] = [12, 8]
             plt.rc('font', size=20)          # controls default text sizes
             plt.rc('axes', titlesize=24)     # fontsize of the axes title
             plt.rc('axes', labelsize=24)    # fontsize of the x and y labels
@@ -4279,9 +4272,9 @@ def main():
             plt.rc('ytick', labelsize=20)    # fontsize of the tick labels
             plt.rc('legend', fontsize=15.5)    # legend fontsize
             plt.rc('figure', titlesize=50)  # fontsize of the figure title
-            
+
             model_num = 0
-            n_factors_list = [5,25,50,100,200]
+            n_factors_list = [5, 25, 50, 100, 200]
             n_nodes_per_layer_list = [64, 32, 16, 8, 4, 2]
             lr_list = [1e-1, 1e-2, 1e-3, 1e-4]
             dropout_prob = 0.2
@@ -4300,39 +4293,44 @@ def main():
             print('Starting grid search...')
             for i, n_factors in enumerate(n_factors_list):
                 for j, lr in enumerate(lr_list):
-                    
+
                     print('model num: ')
                     print(model_num)
-                    
+
                     parent_dir = 'ncf_models/'
                     path = os.path.join(parent_dir, f'model_{model_num}')
                     try:
                         os.mkdir(path)
                     except OSError as error:
-                        print('There is already a folder for this model. Try another model number.')
+                        print(
+                            'There is already a folder for this model. Try another model number.')
 
                     parent_dir = f'ncf_models/model_{model_num}'
                     path = os.path.join(parent_dir, 'figures')
                     try:
                         os.mkdir(path)
                     except OSError as error:
-                        print('There is already a folder for this model. Try another model number.')
+                        print(
+                            'There is already a folder for this model. Try another model number.')
 
                     # creating item embedding path
                     movie_input = Input(shape=[1], name="Item-Input")
-                    movie_embedding = Embedding(n_items+1, n_factors, name="Item-Embedding")(movie_input)
+                    movie_embedding = Embedding(
+                        n_items+1, n_factors, name="Item-Embedding")(movie_input)
                     movie_vec = Flatten(name="Flatten-Items")(movie_embedding)
 
                     # creating user embedding path
                     user_input = Input(shape=[1], name="User-Input")
-                    user_embedding = Embedding(n_users+1, n_factors, name="User-Embedding")(user_input)
+                    user_embedding = Embedding(
+                        n_users+1, n_factors, name="User-Embedding")(user_input)
                     user_vec = Flatten(name="Flatten-Users")(user_embedding)
 
                     # concatenate features
                     conc = Concatenate()([movie_vec, user_vec])
 
                     # add fully-connected-layers
-                    dense = Dense(n_nodes_per_layer_list[0], activation='relu')(conc)
+                    dense = Dense(
+                        n_nodes_per_layer_list[0], activation='relu')(conc)
                     dropout = Dropout(dropout_prob)(dense)
                     batch_norm = BatchNormalization()(dropout)
 
@@ -4341,28 +4339,33 @@ def main():
                         dropout = Dropout(dropout_prob)(dense)
                         batch_norm = BatchNormalization()(dropout)
 
-                    dense = Dense(n_nodes_per_layer_list[-1], activation='relu')(batch_norm)
+                    dense = Dense(
+                        n_nodes_per_layer_list[-1], activation='relu')(batch_norm)
                     out = Dense(1)(dense)
 
                     # Create model and compile it
                     model = Model([user_input, movie_input], out)
-                    model.compile(optimizer=Adam(learning_rate=lr), loss=MeanSquaredError())
-                    
-                    callback = EarlyStopping(monitor=early_stopping_metric, patience=patience)
+                    model.compile(optimizer=Adam(learning_rate=lr),
+                                  loss=MeanSquaredError())
 
-                    history = model.fit(x = [train.user_id, train.item_id], y = train.rating, validation_data = ((val.user_id, val.item_id), val.rating), epochs=epochs, verbose=1, batch_size = batch_size, callbacks = [callback])
+                    callback = EarlyStopping(
+                        monitor=early_stopping_metric, patience=patience)
+
+                    history = model.fit(x=[train.user_id, train.item_id], y=train.rating, validation_data=(
+                        (val.user_id, val.item_id), val.rating), epochs=epochs, verbose=1, batch_size=batch_size, callbacks=[callback])
 
                     train_loss = history.history['loss']
                     val_loss = history.history['val_loss']
 
-                    plt.plot(train_loss, label = 'train')
-                    plt.plot(val_loss, label = 'val')
+                    plt.plot(train_loss, label='train')
+                    plt.plot(val_loss, label='val')
                     plt.yscale('log')
                     plt.ylabel('mse loss')
                     plt.xlabel('epochs')
                     plt.title(f'Model {model_num}: Loss Curves')
                     plt.legend()
-                    plt.savefig(f'ncf_models/model_{model_num}/figures/loss.png')
+                    plt.savefig(
+                        f'ncf_models/model_{model_num}/figures/loss.png')
                     plt.close()
 
                     predictions = model.predict([test.user_id, test.item_id])
@@ -4372,20 +4375,25 @@ def main():
                     for pred_rating in predictions:
                         predictions_list.append(pred_rating[0])
 
-                    ratings_preds_array = np.array(predictions_list).astype('float64')
+                    ratings_preds_array = np.array(
+                        predictions_list).astype('float64')
                     ratings_actual_array = np.array(test.rating)
 
-                    test_mse = mean_squared_error(ratings_actual_array, ratings_preds_array)
+                    test_mse = mean_squared_error(
+                        ratings_actual_array, ratings_preds_array)
 
                     # make csv with ensemble info
-                    model_info_header_list = ['model', 'test mse', 'test preds std', 'epochs', 'learning rate', 'n_nodes_per_layer', 'n_factors', 'batch_size', 'dropout_prob', 'patience', 'early stopping metric']
-                    model_info_val_list = [[model_num, test_mse, preds_std, epochs, lr, n_nodes_per_layer_list, n_factors, batch_size, dropout_prob, patience, early_stopping_metric]]
+                    model_info_header_list = ['model', 'test mse', 'test preds std', 'epochs', 'learning rate',
+                                              'n_nodes_per_layer', 'n_factors', 'batch_size', 'dropout_prob', 'patience', 'early stopping metric']
+                    model_info_val_list = [[model_num, test_mse, preds_std, epochs, lr, n_nodes_per_layer_list,
+                                            n_factors, batch_size, dropout_prob, patience, early_stopping_metric]]
 
-                    model_info_df = pd.DataFrame(model_info_val_list, columns = model_info_header_list)
-                    model_info_df.to_csv(f'ncf_models/model_{model_num}/model_info.csv')
-                    
+                    model_info_df = pd.DataFrame(
+                        model_info_val_list, columns=model_info_header_list)
+                    model_info_df.to_csv(
+                        f'ncf_models/model_{model_num}/model_info.csv')
+
                     model_num += 1
-
 
             print('Grid search finished!')
 
@@ -4571,7 +4579,7 @@ def main():
                 elif algo == "TFIDF" or algo == "tfidf":
                     if tfidf_ran:
                         if userID != "":
-                            
+
                             threshold = float(input("Similarity threshold: "))
                             recs = get_TFIDF_recommendations(
                                 prefs, cosim_matrix, userID, n_recs, movies, threshold
