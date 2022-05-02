@@ -88,6 +88,22 @@ In order to evaluate the II-CF model:
 3) Run SIM.
 4) Run LCVSIM, enter 'ii-cf' and the hyperparameters of the model.
 
+### MF-SGD
+
+In order to evaluate the MF-SGD model: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run T, enter Y. This will create train and test splits.
+4) Run MF-SGD. Follow the pop-up questions and continue. Results will follow.
+
+### MF-SGD
+
+In order to evaluate the MF-ALS model: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run T, enter Y. This will create train and test splits.
+4) Run MF-ALS. Follow the pop-up questions and continue. Results will follow.
+
 ### TFIDF
 
 In order to evaluate the TFIDF model:
@@ -103,6 +119,18 @@ In order to evaluate the HYB model:
 2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
 3) Run TFIDF.
 4) Run SIM.
-5) Run LCVSIM, enter 'hybrid' and the hyperparameters of the model.
+5) Run HYB. This created the updated cosine similarity matrix.
+6) Run LCVSIM, enter 'hybrid' and the hyperparameters of the model.
+
+### NCF
+
+In order to run NCF: 
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TTV. This will create train, validation, and test splits.
+4) Run BNCF or RNCF. This will compile the NCF model.
+5) Run TNCF. This will train the NCF model.
+6) Run ENCF. This will evaluate the model on the test split.
+
 
 
