@@ -6,7 +6,7 @@ This repository contains files relating to our final project for CSC 381 (Recomm
 
 ## Recommendations
 
-### UU-CF
+#### UU-CF
 
 In order to run UU-CF: 
 1) Run RML or R to load in the data
@@ -14,7 +14,7 @@ In order to run UU-CF:
 3) Run SIMU, read or write the user-user similarity matrix with a specificied similarity metric.
 4) Run RECS, enter 'uu-cf' and answer the pop-up questions. When you are asked for the similarity calculation, enter 'd' for distance or 'p' for pearson. 
 
-### II-CF
+#### II-CF
 
 In order to run II-CF: 
 1) Run RML or R to load in the data
@@ -22,7 +22,7 @@ In order to run II-CF:
 3) Run SIM, read or write the item-item similarity matrix with a specificied similarity metric.
 4) Run RECS, enter 'ii-cf' and answer the pop-up questions. When you are asked for the similarity calculation, enter 'd' for distance or 'p' for pearson.
 
-### MF-SGD
+#### MF-SGD
 
 In order to run MF-SGD: 
 1) Run RML or R to load in the data
