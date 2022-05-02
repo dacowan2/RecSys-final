@@ -6,6 +6,8 @@ This repository contains files relating to our final project for CSC 381 (Recomm
 
 The recommender system is contained in Folder 2/recommendations.py. The file contains implementations for of 10 different algorithms: 1) user-based collaborative filtering using Euclidean distance for user-user similarity calculations (UU-CF-D), 2) user-based collaborative filtering using Pearson similarity (UU-CF-P), 3) item-based collaborative filtering using Euclidean distance (II-CF-D), 4) item-based collaborative filtering using Pearson similarity (II-CF-P), 5) matrix factorization collaborative filtering with stochastic gradient descent (MF-SGD), 6) matrix factorization collaborative filtering with alternating least squares (MF-ALS), 7) TFIDF content-based method with cosine similarity for content similarity calculations (TFIDF), 8) a hybrid model using a combination of the II-CF-D and TFIDF methods, (HYB-D) 9) a hybrid model using a combination of the II-CF-P and TFIDF methods (HYB-P) 10) and a neural collaborative filtering model (NCF). Intructions for running each of these models are below:
 
+NOTE: Folder 2/requirements.txt contains the pip packages and versions that were installed on my local machine when running this code. Specifically, one needs: os, numpy, scipy, statsmodels, pandas, csv, matplotlib, pickle, time, warnings, traceback, copy, sklearn, keras, and tensorflow. If there are any issues running the code, please contact us.
+
 ## Recommendations
 
 #### UU-CF
