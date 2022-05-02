@@ -2428,6 +2428,7 @@ def main():
             "ENCF (evaluate NCF) \n"
             "SNCF (save NCF) \n"
             "RNCF (read NCF) \n"
+            "NCF-GRID \n"
             "RECS(ecommendations -- all algos)?, \n"
             "==>> "
         )
@@ -3650,6 +3651,7 @@ def main():
             print()
             try:
                 if len(prefs) > 0:
+
                     print("LOO_CV_SIM Evaluation")
 
                     input_algo = input(
@@ -3686,11 +3688,32 @@ def main():
                         mov = movies
                         wf = 'n/a'
 
+                        error_total, error_list = loo_cv_sim(
+                            prefs,
+                            sim,
+                            algo,
+                            sim_matrix,
+                            dataset_name,
+                            threshold,
+                            sim_sig_weighting,
+                            n_neighbors,
+                            mov,
+                            wf
+                        )
+
                     elif input_algo.lower() == "hybrid":
                         algo = new_get_hybrid_recommendations
                         mov = movies
                         threshold = float(input("Similarity threshold: "))
+                        mov = movies
                         wf = weighting_factor
+                        sim_sig_weighting = 0  # HYB doesn't use a sim sig weighting
+                        n_neighbors = 0  # HYB doesn't use n_neighbors
+
+                        if sim_method == 'sim_distance':
+                            sim = sim_distance
+                        elif sim_method == 'sim_pearson':
+                            sim = sim_pearson
 
                         try:
                             sim_matrix = updated_cosim_matrix
@@ -3705,9 +3728,8 @@ def main():
                         return
 
                     if not sim_ran:
-                        sim = None
-                        print('Run the sim/simu command first!')
                         continue
+                        print()
 
                     elif sim_method == "sim_pearson":
                         sim = sim_pearson
