@@ -1,4 +1,4 @@
-# RecSys-final
+# Recommender Systems Final Project
 
 By Brad Shook, Daniel Cowan, and Drew Dibble
 
