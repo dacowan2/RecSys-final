@@ -133,4 +133,27 @@ In order to run NCF:
 6) Run ENCF. This will evaluate the model on the test split.
 
 
+## Grid Searches
+
+### TFIDF
+
+In order to perform the TFIDF grid search:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run TFIDF-GRID.
+
+### HYB
+
+In order to perform the HYB grid search:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run HYB-GRID.
+
+### NCF
+
+In order to perform the HYB grid search:
+1) Run RML or R to load in the data
+2) Run the corresponding PD-RML or PD-R depending on which data you loaded in 1)
+3) Run NCF-GRID.
+
 
